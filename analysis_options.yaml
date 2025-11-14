@@ -2,7 +2,6 @@ include: package:night_raven_insight/analysis_options.yaml
 
 linter:
   rules:
-    - avoid_returning_null_for_future
     - await_only_futures
     - discarded_futures
     - switch_on_type
