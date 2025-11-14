@@ -1,0 +1,38 @@
+Basic list access:
+First item: apple
+Second item: banana
+Last item: date
+
+Number list:
+Third number: 30
+Fifth number: 50
+
+List properties:
+First: apple
+Last: date
+Length: 4
+
+Empty list length: 0
+Single item list first: only
+
+Nested lists:
+First row, first col: a
+First row, second col: b
+Second row, first col: c
+Second row, second col: d
+
+Mixed object lists:
+First item name: Item 1
+First item value: 100
+Second item name: Item 2
+Third item value: 300
+
+Matrix access:
+Matrix[0][0]: 1
+Matrix[0][2]: 3
+Matrix[1][1]: 5
+Matrix[1][2]: 6
+
+List methods:
+Joined items: apple, banana, cherry, date
+Joined numbers: 10 + 20 + 30 + 40 + 50

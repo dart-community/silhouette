@@ -1,0 +1,44 @@
+---
+user:
+  name: "Dash"
+  email: "dash@flutter.dev"
+  profile:
+    bio: "Widget builder"
+    location: "Widget land"
+    skills:
+      - "Dart"
+      - "Flutter"
+      - "UX"
+company:
+  name: "Flutter"
+  department:
+    name: "Engineering"
+    manager: "Pixel"
+    budget: 500000
+config:
+  app:
+    name: "my_app"
+    version: "1.0.0"
+    settings:
+      debug: true
+      maxUsers: 100
+---
+
+Welcome {{ user.name }}!
+
+Email: {{ user.email }}
+Bio: {{ user.profile.bio }}
+Location: {{ user.profile.location }}
+
+Company: {{ company.name }}
+Department: {{ company.department.name }}
+Manager: {{ company.department.manager }}
+Budget: ${{ company.department.budget }}
+
+App: {{ config.app.name }} v{{ config.app.version }}
+Debug mode: {{ config.app.settings.debug }}
+Max users: {{ config.app.settings.maxUsers }}
+
+First skill: {{ user.profile.skills.first }}
+Last skill: {{ user.profile.skills.last }}
+Total skills: {{ user.profile.skills.length }}

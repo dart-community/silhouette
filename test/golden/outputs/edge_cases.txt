@@ -1,0 +1,58 @@
+Empty and null values:
+Empty string: ""
+Empty string length: 0
+Empty string is empty: true
+Whitespace: "   "
+Whitespace trimmed: ""
+
+Special characters:
+Special chars: !@#$%^&*()_+-={}[]|\:;"'<>?,./
+Special length: 30
+Unicode text: Hello 世界! 🌍
+Unicode length: 12
+
+Number edge cases:
+Zero: 0
+Negative: -42  
+Float: -3.14159
+Large number: 999999999
+
+Boolean values:
+True: true
+False: false
+
+Empty collections:
+Empty list length: 0
+Empty list is empty: true
+
+Nested empty values:
+Empty nested list: 0
+Empty nested string: ""
+
+Mixed type list:
+First (boolean): true
+Second (number): 42
+Third (string): string
+Fourth (float): 3.14
+List length: 7
+
+Quote handling:
+Single quotes: it's working
+Double quotes: she said "hello"
+Mixed quotes: it's a "test"
+Escaped chars: line1
+line2	tab
+
+Deep nesting:
+Deep null: null
+Deep empty list: []
+
+Property chain with empties:
+Mixed nested first: 
+Mixed nested boolean: false
+Mixed nested list: []
+
+Edge case methods:
+Empty string contains empty: true
+Whitespace trimmed: ""
+Zero value: 0

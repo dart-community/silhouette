@@ -1,0 +1,78 @@
+---
+items:
+  - "apple"
+  - "banana"
+  - "cherry"
+  - "date"
+numbers:
+  - 10
+  - 20
+  - 30
+  - 40
+  - 50
+nested:
+  - 
+    - "a"
+    - "b"
+  -
+    - "c"
+    - "d"
+mixed:
+  - name: "Item 1"
+    value: 100
+  - name: "Item 2" 
+    value: 200
+  - name: "Item 3"
+    value: 300
+matrix:
+  -
+    - 1
+    - 2
+    - 3
+  -
+    - 4
+    - 5
+    - 6
+empty: []
+single:
+  - "only"
+---
+
+Basic list access:
+First item: {{ items[0] }}
+Second item: {{ items[1] }}
+Last item: {{ items[3] }}
+
+Number list:
+Third number: {{ numbers[2] }}
+Fifth number: {{ numbers[4] }}
+
+List properties:
+First: {{ items.first }}
+Last: {{ items.last }}
+Length: {{ items.length }}
+
+Empty list length: {{ empty.length }}
+Single item list first: {{ single.first }}
+
+Nested lists:
+First row, first col: {{ nested[0][0] }}
+First row, second col: {{ nested[0][1] }}
+Second row, first col: {{ nested[1][0] }}
+Second row, second col: {{ nested[1][1] }}
+
+Mixed object lists:
+First item name: {{ mixed[0].name }}
+First item value: {{ mixed[0].value }}
+Second item name: {{ mixed[1].name }}
+Third item value: {{ mixed[2].value }}
+
+Matrix access:
+Matrix[0][0]: {{ matrix[0][0] }}
+Matrix[0][2]: {{ matrix[0][2] }}
+Matrix[1][1]: {{ matrix[1][1] }}
+Matrix[1][2]: {{ matrix[1][2] }}
+
+List methods:
+Joined items: {{ items.join(", ") }}
+Joined numbers: {{ numbers.join(" + ") }}

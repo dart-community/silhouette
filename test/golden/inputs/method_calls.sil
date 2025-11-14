@@ -1,0 +1,71 @@
+---
+text: "Hello world"
+longText: "The quick brown fox jumps over the lazy dog."
+items:
+  - "apple"
+  - "banana" 
+  - "cherry"
+  - "date"
+numbers:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+emptyString: ""
+whitespace: "  Hello world  "
+multiword: "Dart, Flutter, Programming"
+sentence: "This is a test sentence with multiple words."
+specialChars: "Hello, World! How are you?"
+---
+
+String methods:
+Uppercase: {{ text.toUpperCase }}
+Original: {{ text }}
+Length: {{ text.length }}
+Empty check: {{ text.isEmpty }}
+Empty string check: {{ emptyString.isEmpty }}
+
+String substring:
+First 5 chars: {{ text.substring(0, end: 5) }}
+From index 6: {{ text.substring(6) }}
+Middle part: {{ longText.substring(4, end: 9) }}
+
+String replace:
+Replace 'world' with 'Dart': {{ text.replace("world", "Dart") }}
+Replace 'fox' with 'cat': {{ longText.replace("fox", "cat") }}
+
+String trim:
+Trimmed: "{{ whitespace.trim() }}"
+Original: "{{ whitespace }}"
+
+String contains:
+Contains 'hello': {{ text.contains("hello") }}
+Contains 'xyz': {{ text.contains("xyz") }}
+
+String split and join:
+Split by space: {{ multiword.split(" ").join(" | ") }}
+Words: {{ sentence.split(" ").length }} words
+
+List methods:
+Joined with commas: {{ items.join(", ") }}
+Joined with " - ": {{ items.join(" - ") }}
+Joined numbers: {{ numbers.join(" + ") }}
+Single separator: {{ items.join("|") }}
+
+List properties:
+First item: {{ items.first }}
+Last item: {{ items.last }}  
+Length: {{ items.length }}
+Empty: {{ items.isEmpty }}
+
+Complex method chaining:
+Uppercase first item: {{ items.first.toUpperCase }}
+Length of last item: {{ items.last.length }}
+Substring of joined: {{ items.join(" ").substring(0, end: 10) }}
+Replace in joined: {{ items.join(", ").replace("apple", "orange") }}
+
+Number operations:
+First number: {{ numbers.first }}
+Last number: {{ numbers.last }}
+Count: {{ numbers.length }}

@@ -1,0 +1,50 @@
+String methods:
+Uppercase: HELLO WORLD
+Original: Hello world
+Length: 11
+Empty check: false
+Empty string check: true
+
+String substring:
+First 5 chars: Hello
+From index 6: world
+Middle part: quick
+
+String replace:
+Replace 'world' with 'Dart': Hello Dart
+Replace 'fox' with 'cat': The quick brown cat jumps over the lazy dog.
+
+String trim:
+Trimmed: "Hello world"
+Original: "  Hello world  "
+
+String contains:
+Contains 'hello': false
+Contains 'xyz': false
+
+String split and join:
+Split by space: Dart, | Flutter, | Programming
+Words: 8 words
+
+List methods:
+Joined with commas: apple, banana, cherry, date
+Joined with " - ": apple - banana - cherry - date
+Joined numbers: 1 + 2 + 3 + 4 + 5
+Single separator: apple|banana|cherry|date
+
+List properties:
+First item: apple
+Last item: date  
+Length: 4
+Empty: false
+
+Complex method chaining:
+Uppercase first item: APPLE
+Length of last item: 4
+Substring of joined: apple bana
+Replace in joined: orange, banana, cherry, date
+
+Number operations:
+First number: 1
+Last number: 5
+Count: 5

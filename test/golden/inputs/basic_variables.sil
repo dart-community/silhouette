@@ -1,0 +1,13 @@
+---
+name: "World"
+greeting: "Hello"
+age: 25
+active: true
+score: 3.14
+---
+
+{{ greeting }}, {{ name }}!
+
+You are {{ age }} years old.
+Active: {{ active }}
+Score: {{ score }}

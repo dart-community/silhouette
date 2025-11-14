@@ -1,0 +1,109 @@
+---
+emptyString: ""
+nullValue: null
+whitespace: "   "
+specialChars: "!@#$%^&*()_+-={}[]|\\:;\"'<>?,./"
+unicode: "Hello 世界! 🌍"
+numbers:
+  zero: 0
+  negative: -42
+  float: -3.14159
+  large: 999999999
+emptyList: []
+emptyObject: {}
+nested:
+  empty:
+    list: []
+    object: {}
+    string: ""
+  mixed:
+    - ""
+    - null
+    - 0
+    - false
+    - {}
+    - []
+mixedTypes:
+  - true
+  - 42
+  - "string"
+  - 3.14
+  - null
+  - {}
+  - []
+deeply:
+  nested:
+    structure:
+      with:
+        empty:
+          values: null
+        and:
+          lists: []
+          objects: {}
+quotes:
+  single: "it's working"
+  double: 'she said "hello"'
+  both: "it's a \"test\""
+  escaped: "line1\nline2\ttab"
+booleans:
+  trueVal: true
+  falseVal: false
+---
+
+Empty and null values:
+Empty string: "{{ emptyString }}"
+Empty string length: {{ emptyString.length }}
+Empty string is empty: {{ emptyString.isEmpty }}
+Whitespace: "{{ whitespace }}"
+Whitespace trimmed: "{{ whitespace.trim() }}"
+
+Special characters:
+Special chars: {{ specialChars }}
+Special length: {{ specialChars.length }}
+Unicode text: {{ unicode }}
+Unicode length: {{ unicode.length }}
+
+Number edge cases:
+Zero: {{ numbers.zero }}
+Negative: {{ numbers.negative }}  
+Float: {{ numbers.float }}
+Large number: {{ numbers.large }}
+
+Boolean values:
+True: {{ booleans.trueVal }}
+False: {{ booleans.falseVal }}
+
+Empty collections:
+Empty list length: {{ emptyList.length }}
+Empty list is empty: {{ emptyList.isEmpty }}
+
+Nested empty values:
+Empty nested list: {{ nested.empty.list.length }}
+Empty nested string: "{{ nested.empty.string }}"
+
+Mixed type list:
+First (boolean): {{ mixedTypes[0] }}
+Second (number): {{ mixedTypes[1] }}
+Third (string): {{ mixedTypes[2] }}
+Fourth (float): {{ mixedTypes[3] }}
+List length: {{ mixedTypes.length }}
+
+Quote handling:
+Single quotes: {{ quotes.single }}
+Double quotes: {{ quotes.double }}
+Mixed quotes: {{ quotes.both }}
+Escaped chars: {{ quotes.escaped }}
+
+Deep nesting:
+Deep null: {{ deeply.nested.structure.with.empty.values }}
+Deep empty list: {{ deeply.nested.structure.with.and.lists }}
+
+Property chain with empties:
+Mixed nested first: {{ nested.mixed[0] }}
+Mixed nested boolean: {{ nested.mixed[3] }}
+Mixed nested list: {{ nested.mixed[5] }}
+
+Edge case methods:
+Empty string contains empty: {{ emptyString.contains("") }}
+Whitespace trimmed: "{{ whitespace.trim() }}"
+Zero value: {{ numbers.zero }}

@@ -1,0 +1,15 @@
+include: package:night_raven_insight/analysis_options.yaml
+
+linter:
+  rules:
+    - avoid_returning_null_for_future
+    - await_only_futures
+    - discarded_futures
+    - switch_on_type
+    - unawaited_futures
+    - unnecessary_async
+    - unnecessary_parenthesis
+    - unnecessary_unawaited
+
+formatter:
+  trailing_commas: preserve
