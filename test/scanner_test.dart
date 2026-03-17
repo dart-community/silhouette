@@ -202,9 +202,9 @@ void main() {
       final tokens = scanner.scan();
 
       expect(tokens[0].type, TokenType.openTag);
-      expect(tokens[1].type, TokenType.reservedKeyword);
+      expect(tokens[1].type, TokenType.ifKeyword);
       expect(tokens[1].value, 'if');
-      expect(tokens[2].type, TokenType.reservedKeyword);
+      expect(tokens[2].type, TokenType.elseKeyword);
       expect(tokens[2].value, 'else');
       expect(tokens[3].type, TokenType.reservedKeyword);
       expect(tokens[3].value, 'for');
@@ -220,6 +220,49 @@ void main() {
       expect(tokens[8].value, 'render');
       expect(tokens[9].type, TokenType.closeTag);
       expect(tokens[10].type, TokenType.endOfFile);
+    });
+
+    test('scans if statement tag sequence', () {
+      final scanner = Scanner('{{ if condition }}body{{ /if }}');
+      final tokens = scanner.scan();
+
+      expect(tokens[0].type, TokenType.openTag);
+      expect(tokens[1].type, TokenType.ifKeyword);
+      expect(tokens[1].value, 'if');
+      expect(tokens[2].type, TokenType.identifier);
+      expect(tokens[2].value, 'condition');
+      expect(tokens[3].type, TokenType.closeTag);
+      expect(tokens[4].type, TokenType.text);
+      expect(tokens[4].value, 'body');
+      expect(tokens[5].type, TokenType.openTag);
+      expect(tokens[6].type, TokenType.slash);
+      expect(tokens[7].type, TokenType.ifKeyword);
+      expect(tokens[7].value, 'if');
+      expect(tokens[8].type, TokenType.closeTag);
+      expect(tokens[9].type, TokenType.endOfFile);
+    });
+
+    test('scans if-else tag sequence', () {
+      final scanner = Scanner('{{ if x }}a{{ else }}b{{ /if }}');
+      final tokens = scanner.scan();
+
+      expect(tokens[0].type, TokenType.openTag);
+      expect(tokens[1].type, TokenType.ifKeyword);
+      expect(tokens[2].type, TokenType.identifier);
+      expect(tokens[2].value, 'x');
+      expect(tokens[3].type, TokenType.closeTag);
+      expect(tokens[4].type, TokenType.text);
+      expect(tokens[4].value, 'a');
+      expect(tokens[5].type, TokenType.openTag);
+      expect(tokens[6].type, TokenType.elseKeyword);
+      expect(tokens[7].type, TokenType.closeTag);
+      expect(tokens[8].type, TokenType.text);
+      expect(tokens[8].value, 'b');
+      expect(tokens[9].type, TokenType.openTag);
+      expect(tokens[10].type, TokenType.slash);
+      expect(tokens[11].type, TokenType.ifKeyword);
+      expect(tokens[12].type, TokenType.closeTag);
+      expect(tokens[13].type, TokenType.endOfFile);
     });
 
     test('scans method calls', () {
@@ -516,7 +559,7 @@ Hello {{ name }}!
       expect(tokens[2].type, TokenType.endOfFile);
     });
 
-    test('handles complex expressions', () {
+    test('handles for loop token sequence', () {
       final scanner = Scanner(
         '{{ for item in items }}{{ item.name }}: {{ item.price }}{{ /for }}',
       );

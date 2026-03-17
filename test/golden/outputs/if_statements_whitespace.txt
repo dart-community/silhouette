@@ -1,0 +1,19 @@
+Without trimming, whitespace is preserved:
+
+  Welcome, admin!
+
+
+With trimming on all tags:Welcome, admin!Trim on if/endif but not content:
+  Hello Dash!If-else without trimming:
+
+  Normal view
+
+
+If-else with full trimming:Normal viewMixed trimming on else-if chain:
+StartAdminEnd
+
+Inline if (no newlines):
+[yes]
+
+False condition with trimming:
+[]

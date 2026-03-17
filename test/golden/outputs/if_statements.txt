@@ -1,0 +1,9 @@
+Hello World!
+Visible
+Admin
+Level: 3
+End
+Admin and visible
+Admin but not hidden
+nested in else
+deeply nested

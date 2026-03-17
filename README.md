@@ -84,6 +84,28 @@ I'm searching for "{{ rawText.trim().toLowerCase() }}".
 {{ null }}
 ```
 
+### Conditional rendering
+
+```sil
+{{ if user.isAdmin }}
+  Welcome, admin!
+{{ /if }}
+
+{{ if user.isActive }}
+  Hello {{ user.name }}!
+{{ else }}
+  Account inactive.
+{{ /if }}
+
+{{ if role.isAdmin }}
+  Full access granted.
+{{ else if role.isModerator }}
+  Moderation tools enabled.
+{{ else }}
+  Standard access.
+{{ /if }}
+```
+
 ### Whitespace control
 
 ```sil

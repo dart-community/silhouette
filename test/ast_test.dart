@@ -46,6 +46,78 @@ void main() {
         expect(stmt.expression, same(expr));
       });
     });
+
+    group('IfStatement', () {
+      test('stores condition and body', () {
+        final condition = IdentifierExpression(
+          testToken(TokenType.identifier, 'show'),
+        );
+        const body = TextOutputStatement('Hello');
+        final stmt = IfStatement(condition: condition, body: body);
+
+        expect(stmt.condition, same(condition));
+        expect(stmt.body, same(body));
+        expect(stmt.elseBranch, isNull);
+      });
+
+      test('stores else branch as a plain statement', () {
+        final condition = IdentifierExpression(
+          testToken(TokenType.identifier, 'a'),
+        );
+        const body = TextOutputStatement('yes');
+        const elseBranch = TextOutputStatement('no');
+
+        final stmt = IfStatement(
+          condition: condition,
+          body: body,
+          elseBranch: elseBranch,
+        );
+
+        expect(stmt.elseBranch, same(elseBranch));
+      });
+
+      test('stores else-if as a nested IfStatement', () {
+        final innerCondition = IdentifierExpression(
+          testToken(TokenType.identifier, 'b'),
+        );
+        const innerBody = TextOutputStatement('2');
+        const elseBody = TextOutputStatement('3');
+        final innerIf = IfStatement(
+          condition: innerCondition,
+          body: innerBody,
+          elseBranch: elseBody,
+        );
+
+        final outerCondition = IdentifierExpression(
+          testToken(TokenType.identifier, 'a'),
+        );
+        const outerBody = TextOutputStatement('1');
+        final outerIf = IfStatement(
+          condition: outerCondition,
+          body: outerBody,
+          elseBranch: innerIf,
+        );
+
+        expect(outerIf.elseBranch, isA<IfStatement>());
+        final nested = outerIf.elseBranch! as IfStatement;
+        expect(nested.condition, same(innerCondition));
+        expect(nested.body, same(innerBody));
+        expect(nested.elseBranch, same(elseBody));
+      });
+
+      test('accepts statement visitor', () {
+        final condition = IdentifierExpression(
+          testToken(TokenType.identifier, 'show'),
+        );
+        const body = TextOutputStatement('Hello');
+        final stmt = IfStatement(condition: condition, body: body);
+
+        final visitor = _TestStatementVisitor();
+        final result = stmt.accept(visitor);
+        expect(result, equals('ifStatement'));
+        expect(visitor.lastIfStmt, same(stmt));
+      });
+    });
   });
 
   group('Expression classes', () {
@@ -329,7 +401,28 @@ void main() {
   });
 }
 
-/// Test implementation of ExpressionVisitor for testing the visitor pattern.
+/// Test implementation of [StatementVisitor] for testing the visitor pattern.
+class _TestStatementVisitor implements StatementVisitor<String> {
+  IfStatement? lastIfStmt;
+
+  @override
+  String visitOrderedStatements(OrderedStatements stmt) => 'orderedStatements';
+
+  @override
+  String visitTextOutput(TextOutputStatement stmt) => 'textOutput';
+
+  @override
+  String visitExpressionOutput(ExpressionOutputStatement stmt) =>
+      'expressionOutput';
+
+  @override
+  String visitIfStatement(IfStatement stmt) {
+    lastIfStmt = stmt;
+    return 'ifStatement';
+  }
+}
+
+/// Test implementation of [ExpressionVisitor] for testing the visitor pattern.
 class _TestVisitor implements ExpressionVisitor<String> {
   IdentifierExpression? lastIdentifierExpr;
   LiteralExpression? lastLiteralExpr;

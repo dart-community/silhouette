@@ -103,7 +103,7 @@ final class Parser {
 
   /// Parses a tag expression in the form `{{ expression }}`.
   ///
-  /// Handles both regular expressions and empty tags.
+  /// Handles standard expressions, empty tags, and if statements.
   /// Empty tags (containing only whitespace) produce
   /// empty text output statements for consistency.
   ///
@@ -113,10 +113,16 @@ final class Parser {
   Statement _parseTagExpression() {
     _consume(TokenType.openTag, 'Expected opening tag {{');
 
+    // Handle if statements.
+    if (_peek().type == TokenType.ifKeyword) {
+      return _parseIfStatement();
+    }
+
     // Handle empty tags.
     if (_peek().type == TokenType.closeTag) {
       _advance();
-      return const TextOutputStatement(''); // Empty tag produces empty text.
+      // Empty tags produce empty text.
+      return const TextOutputStatement('');
     }
 
     // Parse the expression.
@@ -125,6 +131,101 @@ final class Parser {
     _consume(TokenType.closeTag, 'Expected closing tag }}');
 
     return ExpressionOutputStatement(expression);
+  }
+
+  /// Parses an if statement and each of its associated branches.
+  ///
+  /// Creates an [IfStatement] with the else if and else branches
+  /// represented recursively in the [IfStatement.elseBranch].
+  @useResult
+  Statement _parseIfStatement({bool isElseIf = false}) {
+    _consume(TokenType.ifKeyword, 'Expected if keyword');
+    final condition = _parseExpression();
+    _consume(TokenType.closeTag, 'Expected closing tag }} after if condition');
+
+    final body = _parseIfBody();
+
+    Statement? elseBranch;
+    if (_isElseBranch()) {
+      _consume(TokenType.openTag, 'Expected opening tag {{');
+      _consume(TokenType.elseKeyword, 'Expected else keyword');
+
+      if (_peek().type == TokenType.ifKeyword) {
+        // Parse else-if branch as a nested if statement.
+        elseBranch = _parseIfStatement(isElseIf: true);
+      } else {
+        // Parse the body of the else branch until its closed.
+        _consume(TokenType.closeTag, 'Expected closing tag }} after else');
+        elseBranch = _parseIfBody();
+      }
+    }
+
+    // Only consume `{{ /if }}` at the outermost level.
+    // Recursive else-if calls share the same closing tag.
+    if (!isElseIf) {
+      _consumeEndTag('if');
+    }
+
+    return IfStatement(
+      condition: condition,
+      body: body,
+      elseBranch: elseBranch,
+    );
+  }
+
+  /// Parses the body of an if/else-if/else branch.
+  ///
+  /// Collects statements until encountering `{{ else ...` or `{{ /if }}`.
+  @useResult
+  Statement _parseIfBody() {
+    final statements = <Statement>[];
+
+    while (!_isAtEnd() && !_isElseBranch() && !_isEndTag('if')) {
+      final token = _peek();
+
+      switch (token.type) {
+        case TokenType.text:
+          statements.add(TextOutputStatement(_advance().value));
+        case TokenType.openTag:
+          statements.add(_parseTagExpression());
+        case TokenType.openComment || TokenType.closeComment:
+          _advance();
+        default:
+          throw ParseException(
+            'Unexpected token in if body: ${token.type}',
+            token: token,
+          );
+      }
+    }
+
+    return OrderedStatements(statements);
+  }
+
+  /// Checks if the current position is at an `{{ else` tag.
+  bool _isElseBranch() =>
+      _peek().type == TokenType.openTag &&
+      _peekAt(1).type == TokenType.elseKeyword;
+
+  /// Checks if the current position is at an end tag `{{ /<keyword> }}`.
+  bool _isEndTag(String keyword) =>
+      _peek().type == TokenType.openTag &&
+      _peekAt(1).type == TokenType.slash &&
+      _peekAt(2).type == TokenType.ifKeyword &&
+      _peekAt(2).value == keyword;
+
+  /// Consumes an end tag `{{ /<keyword> }}`.
+  void _consumeEndTag(String keyword) {
+    _consume(TokenType.openTag, 'Expected opening tag {{ for end tag');
+    _consume(TokenType.slash, 'Expected / in end tag');
+    final token = _peek();
+    if (token.value != keyword) {
+      throw ParseException(
+        'Expected /$keyword but got /${token.value}',
+        token: token,
+      );
+    }
+    _advance();
+    _consume(TokenType.closeTag, 'Expected closing tag }} for end tag');
   }
 
   /// Parses an expression (entry point for expression parsing).
