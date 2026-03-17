@@ -1,0 +1,51 @@
+---
+admin: true
+guest: false
+name: "Dash"
+---
+
+Without trimming, whitespace is preserved:
+{{ if admin }}
+  Welcome, admin!
+{{ /if }}
+
+With trimming on all tags:
+{{- if admin -}}
+  Welcome, admin!
+{{- /if -}}
+
+Trim on if/endif but not content:
+{{- if admin }}
+  Hello {{ name }}!
+{{- /if -}}
+
+If-else without trimming:
+{{ if guest }}
+  Guest view
+{{ else }}
+  Normal view
+{{ /if }}
+
+If-else with full trimming:
+{{- if guest -}}
+  Guest view
+{{- else -}}
+  Normal view
+{{- /if -}}
+
+Mixed trimming on else-if chain:
+Start
+{{- if guest -}}
+Guest
+{{- else if admin -}}
+Admin
+{{- else -}}
+Unknown
+{{- /if -}}
+End
+
+Inline if (no newlines):
+[{{- if admin -}}yes{{- /if -}}]
+
+False condition with trimming:
+[{{- if guest -}}hidden{{- /if -}}]

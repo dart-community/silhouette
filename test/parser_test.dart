@@ -653,6 +653,208 @@ void main() {
       });
     });
 
+    group('If statements', () {
+      test('parses basic if statement', () {
+        final parser = Parser('{{ if visible }}Hello{{ /if }}');
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        expect(ifStmt.condition, isA<IdentifierExpression>());
+        expect(
+          (ifStmt.condition as IdentifierExpression).token.value,
+          'visible',
+        );
+
+        expect(ifStmt.body, isA<OrderedStatements>());
+        final body = ifStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect(body.statements[0], isA<TextOutputStatement>());
+        expect((body.statements[0] as TextOutputStatement).text, 'Hello');
+
+        expect(ifStmt.elseBranch, isNull);
+      });
+
+      test('parses if-else statement', () {
+        final parser = Parser('{{ if show }}yes{{ else }}no{{ /if }}');
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        final body = ifStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect((body.statements[0] as TextOutputStatement).text, 'yes');
+
+        expect(ifStmt.elseBranch, isA<OrderedStatements>());
+        final elseBranch = ifStmt.elseBranch! as OrderedStatements;
+        expect(elseBranch.statements.length, 1);
+        expect(
+          (elseBranch.statements[0] as TextOutputStatement).text,
+          'no',
+        );
+      });
+
+      test('parses if-else if-else as nested IfStatements', () {
+        final parser = Parser(
+          '{{ if a }}1{{ else if b }}2{{ else }}3{{ /if }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        final body = ifStmt.body as OrderedStatements;
+        expect((body.statements[0] as TextOutputStatement).text, '1');
+
+        // An `else if` produces a nested `IfStatement`.
+        expect(ifStmt.elseBranch, isA<IfStatement>());
+        final elseIf = ifStmt.elseBranch! as IfStatement;
+        expect(elseIf.condition, isA<IdentifierExpression>());
+        expect(
+          (elseIf.condition as IdentifierExpression).token.value,
+          'b',
+        );
+        final elseIfBody = elseIf.body as OrderedStatements;
+        expect((elseIfBody.statements[0] as TextOutputStatement).text, '2');
+
+        expect(elseIf.elseBranch, isA<OrderedStatements>());
+        final elseBody = elseIf.elseBranch! as OrderedStatements;
+        expect((elseBody.statements[0] as TextOutputStatement).text, '3');
+      });
+
+      test('parses multiple else-if branches as nested chain', () {
+        final parser = Parser(
+          '{{ if a }}1{{ else if b }}2{{ else if c }}3{{ else }}4{{ /if }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        // First `else if` branch.
+        expect(ifStmt.elseBranch, isA<IfStatement>());
+        final elseIf1 = ifStmt.elseBranch! as IfStatement;
+        expect(
+          (elseIf1.condition as IdentifierExpression).token.value,
+          'b',
+        );
+        final elseIf1Body = elseIf1.body as OrderedStatements;
+        expect((elseIf1Body.statements[0] as TextOutputStatement).text, '2');
+
+        // Second `else if` branch.
+        expect(elseIf1.elseBranch, isA<IfStatement>());
+        final elseIf2 = elseIf1.elseBranch! as IfStatement;
+        expect(
+          (elseIf2.condition as IdentifierExpression).token.value,
+          'c',
+        );
+        final elseIf2Body = elseIf2.body as OrderedStatements;
+        expect((elseIf2Body.statements[0] as TextOutputStatement).text, '3');
+
+        // Final `else` branch.
+        expect(elseIf2.elseBranch, isA<OrderedStatements>());
+        final finalElse = elseIf2.elseBranch! as OrderedStatements;
+        expect((finalElse.statements[0] as TextOutputStatement).text, '4');
+      });
+
+      test('parses nested if statements', () {
+        final parser = Parser(
+          '{{ if outer }}{{ if inner }}nested{{ /if }}{{ /if }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final outerIf = result as IfStatement;
+
+        final outerBody = outerIf.body as OrderedStatements;
+        expect(outerBody.statements.length, 1);
+        expect(outerBody.statements[0], isA<IfStatement>());
+        final innerIf = outerBody.statements[0] as IfStatement;
+
+        final innerBody = innerIf.body as OrderedStatements;
+        expect(innerBody.statements.length, 1);
+        expect(
+          (innerBody.statements[0] as TextOutputStatement).text,
+          'nested',
+        );
+      });
+
+      test('parses if with expression condition', () {
+        final parser = Parser('{{ if user.isActive }}active{{ /if }}');
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        expect(ifStmt.condition, isA<PropertyAccessExpression>());
+      });
+
+      test('parses if with mixed body content', () {
+        final parser = Parser(
+          '{{ if show }}Hello {{ name }}!{{ /if }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        expect(ifStmt.body, isA<OrderedStatements>());
+        final body = ifStmt.body as OrderedStatements;
+        expect(body.statements.length, 3);
+        expect(body.statements[0], isA<TextOutputStatement>());
+        expect(body.statements[1], isA<ExpressionOutputStatement>());
+        expect(body.statements[2], isA<TextOutputStatement>());
+      });
+
+      test('throws on missing /if end tag', () {
+        final parser = Parser('{{ if show }}content');
+        expect(parser.parse, throwsA(isA<ParseException>()));
+      });
+
+      test('parses if with boolean literal condition', () {
+        final parser = Parser('{{ if true }}always{{ /if }}');
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        expect(ifStmt.condition, isA<LiteralExpression>());
+        expect((ifStmt.condition as LiteralExpression).value, true);
+
+        final body = ifStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect(
+          (body.statements[0] as TextOutputStatement).text,
+          'always',
+        );
+      });
+
+      test('parses if with empty body', () {
+        final parser = Parser('{{ if show }}{{ /if }}');
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        expect(ifStmt.body, isA<OrderedStatements>());
+        expect((ifStmt.body as OrderedStatements).statements, isEmpty);
+      });
+
+      test('parses if surrounded by text', () {
+        final parser = Parser('before{{ if show }}middle{{ /if }}after');
+        final result = parser.parse();
+
+        expect(result, isA<OrderedStatements>());
+        final ordered = result as OrderedStatements;
+        expect(ordered.statements.length, 3);
+        expect(ordered.statements[0], isA<TextOutputStatement>());
+        expect(ordered.statements[1], isA<IfStatement>());
+        expect(ordered.statements[2], isA<TextOutputStatement>());
+      });
+    });
+
     group('Error handling', () {
       test('throws on unclosed tag', () {
         final parser = Parser('{{ name ');

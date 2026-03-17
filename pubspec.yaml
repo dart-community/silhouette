@@ -1,7 +1,7 @@
 name: silhouette
 description: >-
   A simple template engine built to be familiar to Dart developers.
-version: 0.0.1+1
+version: 0.1.0-wip
 repository: https://github.com/dart-community/silhouette
 
 environment:

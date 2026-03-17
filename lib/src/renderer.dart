@@ -77,6 +77,22 @@ final class _TemplateEvaluator
   }
 
   @override
+  Future<void> visitIfStatement(IfStatement stmt) async {
+    final conditionValue = await stmt.condition.accept(this);
+    if (conditionValue is! SilhouetteBool) {
+      throw SilhouetteException(
+        'If condition must be a boolean, got ${conditionValue.runtimeType}',
+      );
+    }
+
+    if (conditionValue.value) {
+      await stmt.body.accept(this);
+    } else if (stmt.elseBranch case final elseBranch?) {
+      await elseBranch.accept(this);
+    }
+  }
+
+  @override
   Future<SilhouetteValue> visitIdentifier(
     IdentifierExpression identifier,
   ) async {

@@ -269,11 +269,21 @@ enum TokenType {
   /// Represents the null value in template expressions.
   nullKeyword,
 
+  /// The `if` keyword for conditional rendering.
+  ///
+  /// Used in `{{ if <condition> }}` to begin a conditional block.
+  ifKeyword,
+
+  /// The `else` keyword for conditional rendering.
+  ///
+  /// Used in `{{ else }}` or `{{ else if <condition> }}` within
+  /// an if statement block.
+  elseKeyword,
+
   /// Reserved keywords for future language features.
   ///
   /// Currently includes:
-  /// - `if`
-  /// - `else`
+  ///
   /// - `for`
   /// - `let`
   /// - `set`

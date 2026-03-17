@@ -74,6 +74,60 @@ final class ExpressionOutputStatement extends Statement {
       visitor.visitExpressionOutput(this);
 }
 
+/// A statement that conditionally renders content
+/// based on a boolean condition.
+///
+/// Represents an `{{ if <condition> }}` block in a template.
+/// If [condition] evaluates to `true`, [body] is rendered.
+/// Otherwise, if it's present, [elseBranch] is rendered.
+///
+/// The `else if` branch is not a distinct AST node.
+/// Instead, it is represented as an [elseBranch] that is
+/// itself an [IfStatement], forming a recursive chain.
+/// For example, the template:
+///
+/// ```sil
+/// {{ if a }}1{{ else if b }}2{{ else }}3{{ /if }}
+/// ```
+///
+/// Produces the following structure:
+///
+/// ```dart
+/// IfStatement(
+///   condition: a,
+///   body: '1',
+///   elseBranch: IfStatement(
+///     condition: b,
+///     body: '2',
+///     elseBranch: '3',
+///   ),
+/// )
+/// ```
+@immutable
+final class IfStatement extends Statement {
+  /// The condition expression, which must evaluate to a boolean.
+  final Expression condition;
+
+  /// The body to render when [condition] is `true`.
+  final Statement body;
+
+  /// The optional else branch, rendered when [condition] is `false`.
+  ///
+  /// When it's another [IfStatement], it represents an `else if` branch.
+  final Statement? elseBranch;
+
+  /// Creates an if statement with the given [condition], [body],
+  /// and optional [elseBranch].
+  const IfStatement({
+    required this.condition,
+    required this.body,
+    this.elseBranch,
+  });
+
+  @override
+  R accept<R>(StatementVisitor<R> visitor) => visitor.visitIfStatement(this);
+}
+
 /// Visitor interface for traversing and operating on statement nodes.
 ///
 /// This interface defines methods for
@@ -89,6 +143,9 @@ abstract interface class StatementVisitor<R> {
 
   /// Visits an expression output statement.
   R visitExpressionOutput(ExpressionOutputStatement stmt);
+
+  /// Visits an if statement.
+  R visitIfStatement(IfStatement stmt);
 }
 
 /// Abstract base class for all expression nodes in the AST.

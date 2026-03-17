@@ -602,22 +602,20 @@ final class Scanner {
   ///
   /// Checks if the identifier matches any reserved keywords or boolean/null
   /// literals. Otherwise, treats it as a regular identifier.
-  TokenType _getTokenTypeForIdentifier(String value) {
-    return switch (value) {
-      'true' => TokenType.trueKeyword,
-      'false' => TokenType.falseKeyword,
-      'null' => TokenType.nullKeyword,
-      'if' ||
-      'else' ||
-      'for' ||
-      'let' ||
-      'set' ||
-      'in' ||
-      'include' ||
-      'render' => TokenType.reservedKeyword,
-      _ => TokenType.identifier,
-    };
-  }
+  TokenType _getTokenTypeForIdentifier(String value) => switch (value) {
+    'true' => TokenType.trueKeyword,
+    'false' => TokenType.falseKeyword,
+    'null' => TokenType.nullKeyword,
+    'if' => TokenType.ifKeyword,
+    'else' => TokenType.elseKeyword,
+    'for' ||
+    'let' ||
+    'set' ||
+    'in' ||
+    'include' ||
+    'render' => TokenType.reservedKeyword,
+    _ => TokenType.identifier,
+  };
 
   /// Skips whitespace characters at the current position.
   ///

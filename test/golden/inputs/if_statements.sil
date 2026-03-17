@@ -1,0 +1,19 @@
+---
+show: true
+hide: false
+name: "World"
+level: 3
+admin: true
+moderator: false
+guest: false
+---
+
+{{ if show }}Hello {{ name }}!{{ /if }}
+{{ if hide }}Hidden{{ else }}Visible{{ /if }}
+{{ if admin }}Admin{{ else if moderator }}Moderator{{ else if guest }}Guest{{ else }}Unknown{{ /if }}
+{{ if show }}Level: {{ level }}{{ /if }}
+{{ if hide }}{{ /if }}End
+{{ if admin }}{{ if show }}Admin and visible{{ /if }}{{ /if }}
+{{ if admin }}{{ if hide }}hidden{{ else }}Admin but not hidden{{ /if }}{{ /if }}
+{{ if hide }}outer{{ else }}{{ if admin }}nested in else{{ else }}fallback{{ /if }}{{ /if }}
+{{ if show }}{{ if admin }}{{ if show }}deeply nested{{ /if }}{{ /if }}{{ /if }}

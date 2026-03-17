@@ -1485,5 +1485,329 @@ void main() {
         expect(result, 'Total: 100 + 10');
       });
     });
+
+    group('If statements', () {
+      test('renders if true branch', () async {
+        final compiled = engine.compile('{{ if show }}Hello{{ /if }}');
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, 'Hello');
+      });
+
+      test('renders nothing for if false without else', () async {
+        final compiled = engine.compile('{{ if show }}Hello{{ /if }}');
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(false),
+          }),
+        );
+        expect(result, '');
+      });
+
+      test('renders else branch when condition is false', () async {
+        final compiled = engine.compile(
+          '{{ if show }}yes{{ else }}no{{ /if }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(false),
+          }),
+        );
+        expect(result, 'no');
+      });
+
+      test('renders correct else-if branch', () async {
+        final compiled = engine.compile(
+          '{{ if a }}1{{ else if b }}2{{ else if c }}3{{ else }}4{{ /if }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('a'): const SilhouetteBool(false),
+            SilhouetteIdentifier('b'): const SilhouetteBool(false),
+            SilhouetteIdentifier('c'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, '3');
+      });
+
+      test('renders first matching branch', () async {
+        final compiled = engine.compile(
+          '{{ if a }}1{{ else if b }}2{{ else }}3{{ /if }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('a'): const SilhouetteBool(true),
+            SilhouetteIdentifier('b'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, '1');
+      });
+
+      test('renders nested if statements', () async {
+        final compiled = engine.compile(
+          '{{ if outer }}{{ if inner }}nested{{ /if }}{{ /if }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('outer'): const SilhouetteBool(true),
+            SilhouetteIdentifier('inner'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, 'nested');
+      });
+
+      test('renders expressions inside if body', () async {
+        final compiled = engine.compile(
+          '{{ if show }}Hello {{ name }}!{{ /if }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            SilhouetteIdentifier('name'): const SilhouetteString('World'),
+          }),
+        );
+        expect(result, 'Hello World!');
+      });
+
+      test('throws on non-boolean condition', () {
+        final compiled = engine.compile('{{ if name }}yes{{ /if }}');
+        expect(
+          () => compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('name'): const SilhouetteString('test'),
+            }),
+          ),
+          throwsA(
+            isA<SilhouetteException>().having(
+              (e) => e.message,
+              'message',
+              contains('boolean'),
+            ),
+          ),
+        );
+      });
+
+      test('renders if with property access condition', () async {
+        final compiled = engine.compile(
+          '{{ if user.active }}active{{ else }}inactive{{ /if }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('user'): SilhouetteObject({
+              SilhouetteIdentifier('active'): const SilhouetteBool(true),
+            }),
+          }),
+        );
+        expect(result, 'active');
+      });
+
+      test('renders if with surrounding text', () async {
+        final compiled = engine.compile(
+          'before{{ if show }} middle {{ /if }}after',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, 'before middle after');
+      });
+
+      test('renders empty body when condition is true', () async {
+        final compiled = engine.compile('{{ if show }}{{ /if }}');
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, '');
+      });
+
+      test(
+        'renders else when no else-if matches and no else-if is true',
+        () async {
+          final compiled = engine.compile(
+            '{{ if a }}1{{ else if b }}2{{ else if c }}3{{ /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('a'): const SilhouetteBool(false),
+              SilhouetteIdentifier('b'): const SilhouetteBool(false),
+              SilhouetteIdentifier('c'): const SilhouetteBool(false),
+            }),
+          );
+          expect(result, '');
+        },
+      );
+
+      test('renders if with whitespace trimming', () async {
+        final compiled = engine.compile(
+          'Hello   {{- if show -}}   World   {{- /if -}}   !',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('show'): const SilhouetteBool(true),
+          }),
+        );
+        expect(result, 'HelloWorld!');
+      });
+
+      group('Whitespace control', () {
+        test('preserves whitespace without trim modifiers', () async {
+          final compiled = engine.compile(
+            'A {{ if show }} B {{ /if }} C',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'A  B  C');
+        });
+
+        test('preserves newlines without trim modifiers', () async {
+          final compiled = engine.compile(
+            'A\n{{ if show }}\nB\n{{ /if }}\nC',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'A\n\nB\n\nC');
+        });
+
+        test('trims whitespace before opening if tag', () async {
+          final compiled = engine.compile(
+            'Hello   {{- if show }}World{{ /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'HelloWorld');
+        });
+
+        test('trims whitespace after opening if tag', () async {
+          final compiled = engine.compile(
+            '{{ if show -}}   World{{ /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'World');
+        });
+
+        test('trims whitespace before closing if tag', () async {
+          final compiled = engine.compile(
+            '{{ if show }}World   {{- /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'World');
+        });
+
+        test('trims whitespace after closing if tag', () async {
+          final compiled = engine.compile(
+            '{{ if show }}World{{ /if -}}   !',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'World!');
+        });
+
+        test('trims whitespace around else tag', () async {
+          final compiled = engine.compile(
+            '{{ if show }}yes   {{- else -}}   no{{ /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(false),
+            }),
+          );
+          expect(result, 'no');
+        });
+
+        test('trims whitespace around else-if tag', () async {
+          final compiled = engine.compile(
+            '{{ if a }}1   {{- else if b -}}   2{{ /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('a'): const SilhouetteBool(false),
+              SilhouetteIdentifier('b'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, '2');
+        });
+
+        test('full trim on multiline if-else', () async {
+          final compiled = engine.compile(
+            'X\n{{- if show -}}\n  body\n{{- else -}}\n  other\n{{- /if -}}\nY',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(result, 'XbodyY');
+        });
+
+        test('full trim on false branch of multiline if-else', () async {
+          final compiled = engine.compile(
+            'X\n{{- if show -}}\n  body\n{{- else -}}\n  other\n{{- /if -}}\nY',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(false),
+            }),
+          );
+          expect(result, 'XotherY');
+        });
+
+        test('preserves whitespace in false branch without trimming', () async {
+          final compiled = engine.compile(
+            '{{ if show }}\n  yes\n{{ /if }}',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(false),
+            }),
+          );
+          expect(result, '');
+        });
+
+        test('inline if with trim produces clean output', () async {
+          final compiled = engine.compile(
+            '[{{- if show -}}yes{{- /if -}}]',
+          );
+          final trueResult = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(true),
+            }),
+          );
+          expect(trueResult, '[yes]');
+
+          final falseResult = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('show'): const SilhouetteBool(false),
+            }),
+          );
+          expect(falseResult, '[]');
+        });
+      });
+    });
   });
 }
