@@ -231,9 +231,9 @@ final class SilhouetteNull extends SilhouetteValue with SilhouetteEquatable {
 /// Available properties:
 /// - `length`: The number of characters
 /// - `isEmpty`/`isNotEmpty`: Whether the string has content
-/// - `toUpperCase`/`toLowerCase`: Case conversion methods
 ///
 /// Available methods:
+/// - `toUpperCase()`/`toLowerCase()`: Case conversion methods
 /// - `substring(start, end: optional)`: Extract a portion of the string
 /// - `replace(from, to, all: true)`: Replace text within the string
 /// - `contains(text)`: Check if string contains substring
@@ -258,11 +258,15 @@ final class SilhouetteString extends SilhouetteValue with SilhouetteEquatable {
   @override
   Future<SilhouetteValue> retrieve(SilhouetteIdentifier propertyName) async {
     return switch (propertyName) {
-      'toUpperCase' => SilhouetteString(value.toUpperCase()),
-      'toLowerCase' => SilhouetteString(value.toLowerCase()),
       'isEmpty' => SilhouetteBool(value.isEmpty),
       'isNotEmpty' => SilhouetteBool(value.isNotEmpty),
       'length' => SilhouetteInt(value.length),
+      'toUpperCase' => SilhouetteFunction((args) {
+        return SilhouetteString(value.toUpperCase());
+      }),
+      'toLowerCase' => SilhouetteFunction((args) {
+        return SilhouetteString(value.toLowerCase());
+      }),
       'substring' => SilhouetteFunction((args) {
         final start = args.positional.isNotEmpty
             ? args.positional[0]

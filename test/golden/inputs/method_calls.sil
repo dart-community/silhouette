@@ -20,7 +20,7 @@ specialChars: "Hello, World! How are you?"
 ---
 
 String methods:
-Uppercase: {{ text.toUpperCase }}
+Uppercase: {{ text.toUpperCase() }}
 Original: {{ text }}
 Length: {{ text.length }}
 Empty check: {{ text.isEmpty }}
@@ -60,7 +60,7 @@ Length: {{ items.length }}
 Empty: {{ items.isEmpty }}
 
 Complex method chaining:
-Uppercase first item: {{ items.first.toUpperCase }}
+Uppercase first item: {{ items.first.toUpperCase() }}
 Length of last item: {{ items.last.length }}
 Substring of joined: {{ items.join(" ").substring(0, end: 10) }}
 Replace in joined: {{ items.join(", ").replace("apple", "orange") }}

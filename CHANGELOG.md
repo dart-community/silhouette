@@ -1,7 +1,9 @@
 ## 0.1.0-wip
 
-- Add support for `if` statements.
-- Add support for `for` loops.
+- Added support for `if` statements.
+- Added support for `for` loops.
+- Changed `toUpperCase` and `toLowerCase` to be
+  methods on `String` instead of properties.
 
 ## 0.0.1+1
 

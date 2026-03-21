@@ -51,22 +51,6 @@ void main() {
     group('string properties', () {
       const testString = SilhouetteString('Hello World');
 
-      test('toUpperCase property', () async {
-        final result = await testString.retrieve(
-          SilhouetteIdentifier('toUpperCase'),
-        );
-        expect(result, isA<SilhouetteString>());
-        expect((result as SilhouetteString).value, equals('HELLO WORLD'));
-      });
-
-      test('toLowerCase property', () async {
-        final result = await testString.retrieve(
-          SilhouetteIdentifier('toLowerCase'),
-        );
-        expect(result, isA<SilhouetteString>());
-        expect((result as SilhouetteString).value, equals('hello world'));
-      });
-
       test('isEmpty property', () async {
         const empty = SilhouetteString('');
         const notEmpty = SilhouetteString('test');
@@ -109,6 +93,30 @@ void main() {
 
     group('string methods', () {
       const testString = SilhouetteString('Hello World');
+
+      test('toUpperCase method', () async {
+        final result = await testString.retrieve(
+          SilhouetteIdentifier('toUpperCase'),
+        );
+        expect(result, isA<SilhouetteFunction>());
+        final value = await (result as SilhouetteFunction).call(
+          SilhouetteArguments(positional: [], named: {}),
+        );
+        expect(value, isA<SilhouetteString>());
+        expect((value as SilhouetteString).value, equals('HELLO WORLD'));
+      });
+
+      test('toLowerCase method', () async {
+        final result = await testString.retrieve(
+          SilhouetteIdentifier('toLowerCase'),
+        );
+        expect(result, isA<SilhouetteFunction>());
+        final value = await (result as SilhouetteFunction).call(
+          SilhouetteArguments(positional: [], named: {}),
+        );
+        expect(value, isA<SilhouetteString>());
+        expect((value as SilhouetteString).value, equals('hello world'));
+      });
 
       test('substring method', () async {
         final substringFunc = await testString.retrieve(

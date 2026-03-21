@@ -169,7 +169,7 @@ void main() {
     group('Method calls', () {
       test('calls string methods', () async {
         final compiled = engine.compile(
-          '{{ text.toUpperCase }}, {{ text.substring(0) }}',
+          '{{ text.toUpperCase() }}, {{ text.substring(0) }}',
         );
         final result = await compiled.render(
           SilhouetteObject({
@@ -341,7 +341,7 @@ void main() {
 
       test('renders complex expression chains', () async {
         final compiled = engine.compile(
-          '{{ users[0]["addresses"][0]["city"].toUpperCase }}',
+          '{{ users[0]["addresses"][0]["city"].toUpperCase() }}',
         );
         final result = await compiled.render(
           SilhouetteObject({
@@ -1991,7 +1991,7 @@ void main() {
 
       test('accesses properties on loop variable string', () async {
         final compiled = engine.compile(
-          '{{ for name in names }}{{ name.toUpperCase }} {{ /for }}',
+          '{{ for name in names }}{{ name.toUpperCase() }} {{ /for }}',
         );
         final result = await compiled.render(
           SilhouetteObject({
