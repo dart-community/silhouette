@@ -113,24 +113,23 @@ final class Parser {
   Statement _parseTagExpression() {
     _consume(TokenType.openTag, 'Expected opening tag {{');
 
-    // Handle if statements.
-    if (_peek().type == TokenType.ifKeyword) {
-      return _parseIfStatement();
+    switch (_peek().type) {
+      case .ifKeyword:
+        return _parseIfStatement();
+      case .forKeyword:
+        return _parseForStatement();
+      case .closeTag:
+        // If the tag is empty, it should produce empty text.
+        _advance();
+        return const TextOutputStatement('');
+      default:
+        // There's no tag, so try parsing it as an expression.
+        final expression = _parseExpression();
+
+        _consume(TokenType.closeTag, 'Expected closing tag }}');
+
+        return ExpressionOutputStatement(expression);
     }
-
-    // Handle empty tags.
-    if (_peek().type == TokenType.closeTag) {
-      _advance();
-      // Empty tags produce empty text.
-      return const TextOutputStatement('');
-    }
-
-    // Parse the expression.
-    final expression = _parseExpression();
-
-    _consume(TokenType.closeTag, 'Expected closing tag }}');
-
-    return ExpressionOutputStatement(expression);
   }
 
   /// Parses an if statement and each of its associated branches.
@@ -201,6 +200,63 @@ final class Parser {
     return OrderedStatements(statements);
   }
 
+  /// Parses a for statement in the form `{{ for <variable> in <iterable> }}`.
+  ///
+  /// Creates a [ForStatement] with a loop variable, iterable expression,
+  /// and body that is rendered for each element of the iterable.
+  @useResult
+  Statement _parseForStatement() {
+    _consume(TokenType.forKeyword, 'Expected for keyword');
+    final variable = _consume(
+      TokenType.identifier,
+      'Expected loop variable name after for',
+    );
+    _consume(TokenType.inKeyword, 'Expected in keyword after loop variable');
+    final iterable = _parseExpression();
+    _consume(
+      TokenType.closeTag,
+      'Expected closing tag }} after for expression',
+    );
+
+    final body = _parseForBody();
+
+    _consumeEndTag('for');
+
+    return ForStatement(
+      variable: variable,
+      iterable: iterable,
+      body: body,
+    );
+  }
+
+  /// Parses the body of a for loop.
+  ///
+  /// Collects statements until encountering `{{ /for }}`.
+  @useResult
+  Statement _parseForBody() {
+    final statements = <Statement>[];
+
+    while (!_isAtEnd() && !_isEndTag('for')) {
+      final token = _peek();
+
+      switch (token.type) {
+        case TokenType.text:
+          statements.add(TextOutputStatement(_advance().value));
+        case TokenType.openTag:
+          statements.add(_parseTagExpression());
+        case TokenType.openComment || TokenType.closeComment:
+          _advance();
+        default:
+          throw ParseException(
+            'Unexpected token in for body: ${token.type}',
+            token: token,
+          );
+      }
+    }
+
+    return OrderedStatements(statements);
+  }
+
   /// Checks if the current position is at an `{{ else` tag.
   bool _isElseBranch() =>
       _peek().type == TokenType.openTag &&
@@ -210,7 +266,6 @@ final class Parser {
   bool _isEndTag(String keyword) =>
       _peek().type == TokenType.openTag &&
       _peekAt(1).type == TokenType.slash &&
-      _peekAt(2).type == TokenType.ifKeyword &&
       _peekAt(2).value == keyword;
 
   /// Consumes an end tag `{{ /<keyword> }}`.

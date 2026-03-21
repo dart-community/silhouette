@@ -118,6 +118,43 @@ void main() {
         expect(visitor.lastIfStmt, same(stmt));
       });
     });
+
+    group('ForStatement', () {
+      test('stores variable, iterable, and body', () {
+        final variable = testToken(TokenType.identifier, 'item');
+        final iterable = IdentifierExpression(
+          testToken(TokenType.identifier, 'items'),
+        );
+        const body = TextOutputStatement('Hello');
+        final stmt = ForStatement(
+          variable: variable,
+          iterable: iterable,
+          body: body,
+        );
+
+        expect(stmt.variable, same(variable));
+        expect(stmt.iterable, same(iterable));
+        expect(stmt.body, same(body));
+      });
+
+      test('accepts statement visitor', () {
+        final variable = testToken(TokenType.identifier, 'item');
+        final iterable = IdentifierExpression(
+          testToken(TokenType.identifier, 'items'),
+        );
+        const body = TextOutputStatement('Hello');
+        final stmt = ForStatement(
+          variable: variable,
+          iterable: iterable,
+          body: body,
+        );
+
+        final visitor = _TestStatementVisitor();
+        final result = stmt.accept(visitor);
+        expect(result, equals('forStatement'));
+        expect(visitor.lastForStmt, same(stmt));
+      });
+    });
   });
 
   group('Expression classes', () {
@@ -404,6 +441,7 @@ void main() {
 /// Test implementation of [StatementVisitor] for testing the visitor pattern.
 class _TestStatementVisitor implements StatementVisitor<String> {
   IfStatement? lastIfStmt;
+  ForStatement? lastForStmt;
 
   @override
   String visitOrderedStatements(OrderedStatements stmt) => 'orderedStatements';
@@ -419,6 +457,12 @@ class _TestStatementVisitor implements StatementVisitor<String> {
   String visitIfStatement(IfStatement stmt) {
     lastIfStmt = stmt;
     return 'ifStatement';
+  }
+
+  @override
+  String visitForStatement(ForStatement stmt) {
+    lastForStmt = stmt;
+    return 'forStatement';
   }
 }
 

@@ -1,0 +1,30 @@
+---
+showTeams: true
+teams:
+  - name: "Backend"
+    members:
+      - "Dash"
+      - "Sparky"
+  - name: "Frontend"
+    members:
+      - "Dash"
+      - "Dino"
+users:
+  - name: "Dash"
+    active: true
+  - name: "Sparky"
+    active: false
+  - name: "Dino"
+    active: true
+---
+
+If contains for:
+{{ if showTeams }}{{ for team in teams }}{{ team.name }}:
+{{ for member in team.members }}- {{ member }}
+{{ /for }}{{ /for }}{{ else }}No teams
+{{ /if }}
+
+For contains if:
+{{ for user in users }}{{ if user.active }}ACTIVE: {{ user.name }}
+{{ else }}INACTIVE: {{ user.name }}
+{{ /if }}{{ /for }}

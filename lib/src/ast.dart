@@ -128,6 +128,50 @@ final class IfStatement extends Statement {
   R accept<R>(StatementVisitor<R> visitor) => visitor.visitIfStatement(this);
 }
 
+/// A statement that iterates over an iterable value,
+/// rendering its body for each element.
+///
+/// Represents a `{{ for <variable> in <iterable> }}` block in a template.
+/// On each iteration, the loop [variable] is bound to
+/// the current element and the [body] is rendered.
+///
+/// The loop variable is scoped to the loop body and
+/// shadows any outer variable with the same name.
+///
+/// For example, the template:
+///
+/// ```sil
+/// {{ for item in items }}
+///   {{ item }}
+/// {{ /for }}
+/// ```
+///
+/// Produces a [ForStatement] where [variable] holds the token for `item`,
+/// [iterable] is the expression for `items`, and [body] contains
+/// the statements to render for each element.
+@immutable
+final class ForStatement extends Statement {
+  /// The token for the loop variable identifier.
+  final Token variable;
+
+  /// The expression that produces the iterable to loop over.
+  final Expression iterable;
+
+  /// The body to render for each iteration.
+  final Statement body;
+
+  /// Creates a for statement with the given
+  /// [variable], [iterable], and [body].
+  const ForStatement({
+    required this.variable,
+    required this.iterable,
+    required this.body,
+  });
+
+  @override
+  R accept<R>(StatementVisitor<R> visitor) => visitor.visitForStatement(this);
+}
+
 /// Visitor interface for traversing and operating on statement nodes.
 ///
 /// This interface defines methods for
@@ -146,6 +190,9 @@ abstract interface class StatementVisitor<R> {
 
   /// Visits an if statement.
   R visitIfStatement(IfStatement stmt);
+
+  /// Visits a for statement.
+  R visitForStatement(ForStatement stmt);
 }
 
 /// Abstract base class for all expression nodes in the AST.

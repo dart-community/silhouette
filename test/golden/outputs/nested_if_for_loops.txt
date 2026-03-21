@@ -1,0 +1,13 @@
+If contains for:
+Backend:
+- Dash
+- Sparky
+Frontend:
+- Dash
+- Dino
+
+
+For contains if:
+ACTIVE: Dash
+INACTIVE: Sparky
+ACTIVE: Dino

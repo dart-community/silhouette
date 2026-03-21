@@ -1,0 +1,34 @@
+---
+items:
+  - "alpha"
+  - "bravo"
+  - "charlie"
+admin: true
+---
+
+Without trimming, whitespace is preserved:
+{{ for item in items }}
+  {{ item }}
+{{ /for }}
+---
+Compact list with full trim:
+[{{- for item in items -}}({{- item -}}){{- /for -}}]
+---
+Trim outer tags only:
+{{- for item in items }}
+  * {{ item }}
+{{ /for -}}
+---
+For inside trimmed if:
+{{- if admin -}}
+{{- for item in items }}
+  [{{ item }}]
+{{ /for -}}
+{{- /if -}}
+---
+Nested context:
+Start
+{{- for item in items -}}
+[{{ item }}]
+{{- /for -}}
+End

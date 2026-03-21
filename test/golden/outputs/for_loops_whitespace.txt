@@ -1,0 +1,28 @@
+Without trimming, whitespace is preserved:
+
+  alpha
+
+  bravo
+
+  charlie
+
+---
+Compact list with full trim:
+[(alpha)(bravo)(charlie)]
+---
+Trim outer tags only:
+  * alpha
+
+  * bravo
+
+  * charlie
+---
+For inside trimmed if:
+  [alpha]
+
+  [bravo]
+
+  [charlie]
+---
+Nested context:
+Start[alpha][bravo][charlie]End
