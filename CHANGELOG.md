@@ -1,6 +1,7 @@
 ## 0.1.0-wip
 
-- Add support for if statements.
+- Add support for `if` statements.
+- Add support for `for` loops.
 
 ## 0.0.1+1
 

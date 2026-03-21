@@ -1,0 +1,28 @@
+Basic list iteration:
+* apple
+* banana
+* cherry
+
+Object property access:
+Dash (admin)
+Sparky (editor)
+Dino (viewer)
+
+Nested loops:
+[1 2 ]
+[3 4 ]
+
+Empty list produces no output:
+
+Access outer scope:
+> apple
+> banana
+> cherry
+
+For inside if:
+  - Dash
+  - Sparky
+  - Dino
+
+Inline with the surrounding text:
+Items: apple, banana, cherry, done.

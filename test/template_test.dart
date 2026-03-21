@@ -1809,5 +1809,283 @@ void main() {
         });
       });
     });
+
+    group('For loops', () {
+      test('iterates over a list', () async {
+        final compiled = engine.compile(
+          '{{ for item in items }}{{ item }} {{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('items'): const SilhouetteList([
+              SilhouetteString('apple'),
+              SilhouetteString('banana'),
+              SilhouetteString('cherry'),
+            ]),
+          }),
+        );
+        expect(result, 'apple banana cherry ');
+      });
+
+      test('iterates over an empty list', () async {
+        final compiled = engine.compile(
+          '{{ for item in items }}{{ item }}{{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('items'): const SilhouetteList(
+              <SilhouetteValue>[],
+            ),
+          }),
+        );
+        expect(result, '');
+      });
+
+      test('iterates over a set', () async {
+        final compiled = engine.compile(
+          '{{ for item in items }}{{ item }} {{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('items'): SilhouetteSet({
+              const SilhouetteString('one'),
+              const SilhouetteString('two'),
+            }),
+          }),
+        );
+        expect(result, 'one two ');
+      });
+
+      test('accesses properties on loop variable', () async {
+        final compiled = engine.compile(
+          '{{ for user in users }}{{ user.name }} {{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('users'): SilhouetteList([
+              SilhouetteObject({
+                SilhouetteIdentifier('name'): const SilhouetteString('Alice'),
+              }),
+              SilhouetteObject({
+                SilhouetteIdentifier('name'): const SilhouetteString('Bob'),
+              }),
+            ]),
+          }),
+        );
+        expect(result, 'Alice Bob ');
+      });
+
+      test('loop variable shadows outer scope', () async {
+        final compiled = engine.compile(
+          'outer:{{ item }} {{ for item in items }}{{ item }} {{ /for }}outer:{{ item }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('item'): const SilhouetteString('ORIGINAL'),
+            SilhouetteIdentifier('items'): const SilhouetteList([
+              SilhouetteString('a'),
+              SilhouetteString('b'),
+            ]),
+          }),
+        );
+        expect(result, 'outer:ORIGINAL a b outer:ORIGINAL');
+      });
+
+      test('accesses outer scope variables from within loop', () async {
+        final compiled = engine.compile(
+          '{{ for item in items }}{{ prefix }}{{ item }} {{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('prefix'): const SilhouetteString('> '),
+            SilhouetteIdentifier('items'): const SilhouetteList([
+              SilhouetteString('a'),
+              SilhouetteString('b'),
+            ]),
+          }),
+        );
+        expect(result, '> a > b ');
+      });
+
+      test('supports nested for loops', () async {
+        final compiled = engine.compile(
+          '{{ for row in matrix }}[{{ for cell in row }}{{ cell }},{{ /for }}]{{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('matrix'): const SilhouetteList([
+              SilhouetteList([
+                SilhouetteInt(1),
+                SilhouetteInt(2),
+              ]),
+              SilhouetteList([
+                SilhouetteInt(3),
+                SilhouetteInt(4),
+              ]),
+            ]),
+          }),
+        );
+        expect(result, '[1,2,][3,4,]');
+      });
+
+      test('works with if statement inside loop', () async {
+        final compiled = engine.compile(
+          '{{ for n in nums }}{{ if n.isEven }}{{ n }} {{ /if }}{{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('nums'): const SilhouetteList([
+              SilhouetteInt(1),
+              SilhouetteInt(2),
+              SilhouetteInt(3),
+              SilhouetteInt(4),
+            ]),
+          }),
+        );
+        expect(result, '2 4 ');
+      });
+
+      test('works with for loop inside if statement', () async {
+        final compiled = engine.compile(
+          '{{ if hasItems }}{{ for item in items }}{{ item }}{{ /for }}{{ else }}empty{{ /if }}',
+        );
+
+        final withItems = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('hasItems'): const SilhouetteBool(true),
+            SilhouetteIdentifier('items'): const SilhouetteList([
+              SilhouetteString('a'),
+              SilhouetteString('b'),
+            ]),
+          }),
+        );
+        expect(withItems, 'ab');
+
+        final withoutItems = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('hasItems'): const SilhouetteBool(false),
+            SilhouetteIdentifier('items'): const SilhouetteList(
+              <SilhouetteValue>[],
+            ),
+          }),
+        );
+        expect(withoutItems, 'empty');
+      });
+
+      test('iterates over property access result', () async {
+        final compiled = engine.compile(
+          '{{ for tag in user.tags }}{{ tag }} {{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('user'): SilhouetteObject({
+              SilhouetteIdentifier('tags'): const SilhouetteList([
+                SilhouetteString('dart'),
+                SilhouetteString('flutter'),
+              ]),
+            }),
+          }),
+        );
+        expect(result, 'dart flutter ');
+      });
+
+      test('accesses properties on loop variable string', () async {
+        final compiled = engine.compile(
+          '{{ for name in names }}{{ name.toUpperCase }} {{ /for }}',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('names'): const SilhouetteList([
+              SilhouetteString('alice'),
+              SilhouetteString('bob'),
+            ]),
+          }),
+        );
+        expect(result, 'ALICE BOB ');
+      });
+
+      test('throws when iterating over non-iterable', () {
+        final compiled = engine.compile(
+          '{{ for item in value }}{{ item }}{{ /for }}',
+        );
+        expect(
+          () => compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('value'): const SilhouetteString('hello'),
+            }),
+          ),
+          throwsA(
+            isA<SilhouetteException>().having(
+              (e) => e.message,
+              'message',
+              contains('iterable'),
+            ),
+          ),
+        );
+      });
+
+      test('with text surrounding loop', () async {
+        final compiled = engine.compile(
+          'Items: {{ for item in items }}{{ item }}, {{ /for }}done.',
+        );
+        final result = await compiled.render(
+          SilhouetteObject({
+            SilhouetteIdentifier('items'): const SilhouetteList([
+              SilhouetteString('x'),
+              SilhouetteString('y'),
+            ]),
+          }),
+        );
+        expect(result, 'Items: x, y, done.');
+      });
+
+      group('Whitespace control', () {
+        test('trims whitespace with for loop tags', () async {
+          final compiled = engine.compile(
+            'X\n{{- for item in items -}}\n{{ item }}\n{{- /for -}}\nY',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('items'): const SilhouetteList([
+                SilhouetteString('a'),
+                SilhouetteString('b'),
+              ]),
+            }),
+          );
+          // All whitespace around the for/endfor tags is trimmed.
+          expect(result, 'XabY');
+        });
+
+        test('partial trim preserves inner whitespace', () async {
+          final compiled = engine.compile(
+            'X\n{{- for item in items }}\n{{ item }}\n{{ /for -}}\nY',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('items'): const SilhouetteList([
+                SilhouetteString('a'),
+                SilhouetteString('b'),
+              ]),
+            }),
+          );
+          expect(result, 'X\na\n\nb\nY');
+        });
+
+        test('inline for with trim produces clean output', () async {
+          final compiled = engine.compile(
+            '[{{- for x in items -}}{{- x -}}{{- /for -}}]',
+          );
+          final result = await compiled.render(
+            SilhouetteObject({
+              SilhouetteIdentifier('items'): const SilhouetteList([
+                SilhouetteString('a'),
+                SilhouetteString('b'),
+              ]),
+            }),
+          );
+          expect(result, '[ab]');
+        });
+      });
+    });
   });
 }

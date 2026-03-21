@@ -206,13 +206,13 @@ void main() {
       expect(tokens[1].value, 'if');
       expect(tokens[2].type, TokenType.elseKeyword);
       expect(tokens[2].value, 'else');
-      expect(tokens[3].type, TokenType.reservedKeyword);
+      expect(tokens[3].type, TokenType.forKeyword);
       expect(tokens[3].value, 'for');
       expect(tokens[4].type, TokenType.reservedKeyword);
       expect(tokens[4].value, 'let');
       expect(tokens[5].type, TokenType.reservedKeyword);
       expect(tokens[5].value, 'set');
-      expect(tokens[6].type, TokenType.reservedKeyword);
+      expect(tokens[6].type, TokenType.inKeyword);
       expect(tokens[6].value, 'in');
       expect(tokens[7].type, TokenType.reservedKeyword);
       expect(tokens[7].value, 'include');
@@ -567,11 +567,11 @@ Hello {{ name }}!
 
       // Verify we get proper tokens for the for loop.
       expect(tokens[0].type, TokenType.openTag);
-      expect(tokens[1].type, TokenType.reservedKeyword);
+      expect(tokens[1].type, TokenType.forKeyword);
       expect(tokens[1].value, 'for');
       expect(tokens[2].type, TokenType.identifier);
       expect(tokens[2].value, 'item');
-      expect(tokens[3].type, TokenType.reservedKeyword);
+      expect(tokens[3].type, TokenType.inKeyword);
       expect(tokens[3].value, 'in');
       expect(tokens[4].type, TokenType.identifier);
       expect(tokens[4].value, 'items');

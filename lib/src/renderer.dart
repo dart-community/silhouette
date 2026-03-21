@@ -77,6 +77,29 @@ final class _TemplateEvaluator
   }
 
   @override
+  Future<void> visitForStatement(ForStatement stmt) async {
+    final iterableValue = await stmt.iterable.accept(this);
+    if (iterableValue is! SilhouetteIterable<SilhouetteValue>) {
+      throw SilhouetteException(
+        'For loop requires an iterable, got ${iterableValue.runtimeType}',
+      );
+    }
+
+    final variableName = SilhouetteIdentifier(stmt.variable.value);
+
+    for (final element in iterableValue.values) {
+      // Create a scope with the loop variable for each iteration.
+      final loopScope = SilhouetteObject({variableName: element});
+      _scopes.add(loopScope);
+      try {
+        await stmt.body.accept(this);
+      } finally {
+        _scopes.removeLast();
+      }
+    }
+  }
+
+  @override
   Future<void> visitIfStatement(IfStatement stmt) async {
     final conditionValue = await stmt.condition.accept(this);
     if (conditionValue is! SilhouetteBool) {

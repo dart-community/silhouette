@@ -855,6 +855,158 @@ void main() {
       });
     });
 
+    group('For statements', () {
+      test('parses basic for statement', () {
+        final parser = Parser('{{ for item in items }}{{ item }}{{ /for }}');
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final forStmt = result as ForStatement;
+
+        expect(forStmt.variable.value, 'item');
+
+        expect(forStmt.iterable, isA<IdentifierExpression>());
+        expect(
+          (forStmt.iterable as IdentifierExpression).token.value,
+          'items',
+        );
+
+        expect(forStmt.body, isA<OrderedStatements>());
+        final body = forStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect(body.statements[0], isA<ExpressionOutputStatement>());
+      });
+
+      test('parses for with text body', () {
+        final parser = Parser('{{ for x in list }}hello{{ /for }}');
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final forStmt = result as ForStatement;
+
+        final body = forStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect(body.statements[0], isA<TextOutputStatement>());
+        expect((body.statements[0] as TextOutputStatement).text, 'hello');
+      });
+
+      test('parses for with property access iterable', () {
+        final parser = Parser(
+          '{{ for tag in user.tags }}{{ tag }}{{ /for }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final forStmt = result as ForStatement;
+
+        expect(forStmt.iterable, isA<PropertyAccessExpression>());
+        final prop = forStmt.iterable as PropertyAccessExpression;
+        expect(prop.identifier.value, 'tags');
+      });
+
+      test('parses for with mixed body content', () {
+        final parser = Parser(
+          '{{ for item in items }}<li>{{ item }}</li>{{ /for }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final forStmt = result as ForStatement;
+
+        final body = forStmt.body as OrderedStatements;
+        expect(body.statements.length, 3);
+        expect(body.statements[0], isA<TextOutputStatement>());
+        expect(body.statements[1], isA<ExpressionOutputStatement>());
+        expect(body.statements[2], isA<TextOutputStatement>());
+      });
+
+      test('parses for with empty body', () {
+        final parser = Parser('{{ for x in list }}{{ /for }}');
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final forStmt = result as ForStatement;
+
+        expect(forStmt.body, isA<OrderedStatements>());
+        expect((forStmt.body as OrderedStatements).statements, isEmpty);
+      });
+
+      test('parses for surrounded by text', () {
+        final parser = Parser(
+          'before{{ for x in list }}body{{ /for }}after',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<OrderedStatements>());
+        final ordered = result as OrderedStatements;
+        expect(ordered.statements.length, 3);
+        expect(ordered.statements[0], isA<TextOutputStatement>());
+        expect(ordered.statements[1], isA<ForStatement>());
+        expect(ordered.statements[2], isA<TextOutputStatement>());
+      });
+
+      test('parses nested for statements', () {
+        final parser = Parser(
+          '{{ for row in matrix }}{{ for cell in row }}{{ cell }}{{ /for }}{{ /for }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final outerFor = result as ForStatement;
+        expect(outerFor.variable.value, 'row');
+
+        final outerBody = outerFor.body as OrderedStatements;
+        expect(outerBody.statements.length, 1);
+        expect(outerBody.statements[0], isA<ForStatement>());
+
+        final innerFor = outerBody.statements[0] as ForStatement;
+        expect(innerFor.variable.value, 'cell');
+      });
+
+      test('parses for with if statement inside', () {
+        final parser = Parser(
+          '{{ for item in items }}{{ if item.visible }}{{ item }}{{ /if }}{{ /for }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<ForStatement>());
+        final forStmt = result as ForStatement;
+
+        final body = forStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect(body.statements[0], isA<IfStatement>());
+      });
+
+      test('parses if with for statement inside', () {
+        final parser = Parser(
+          '{{ if hasItems }}{{ for item in items }}{{ item }}{{ /for }}{{ /if }}',
+        );
+        final result = parser.parse();
+
+        expect(result, isA<IfStatement>());
+        final ifStmt = result as IfStatement;
+
+        final body = ifStmt.body as OrderedStatements;
+        expect(body.statements.length, 1);
+        expect(body.statements[0], isA<ForStatement>());
+      });
+
+      test('throws on missing /for end tag', () {
+        final parser = Parser('{{ for x in list }}content');
+        expect(parser.parse, throwsA(isA<ParseException>()));
+      });
+
+      test('throws on missing in keyword', () {
+        final parser = Parser('{{ for x list }}{{ /for }}');
+        expect(parser.parse, throwsA(isA<ParseException>()));
+      });
+
+      test('throws on missing loop variable', () {
+        final parser = Parser('{{ for in list }}{{ /for }}');
+        expect(parser.parse, throwsA(isA<ParseException>()));
+      });
+    });
+
     group('Error handling', () {
       test('throws on unclosed tag', () {
         final parser = Parser('{{ name ');

@@ -1,0 +1,43 @@
+---
+fruits:
+  - "apple"
+  - "banana"
+  - "cherry"
+users:
+  - name: "Dash"
+    role: "admin"
+  - name: "Sparky"
+    role: "editor"
+  - name: "Dino"
+    role: "viewer"
+matrix:
+  -
+    - 1
+    - 2
+  -
+    - 3
+    - 4
+empty: []
+prefix: "> "
+showUsers: true
+---
+
+Basic list iteration:
+{{ for fruit in fruits }}* {{ fruit }}
+{{ /for }}
+Object property access:
+{{ for user in users }}{{ user.name }} ({{ user.role }})
+{{ /for }}
+Nested loops:
+{{ for row in matrix }}[{{ for cell in row }}{{ cell }} {{ /for }}]
+{{ /for }}
+Empty list produces no output:
+{{ for item in empty }}never{{ /for }}
+Access outer scope:
+{{ for fruit in fruits }}{{ prefix }}{{ fruit }}
+{{ /for }}
+For inside if:
+{{ if showUsers }}{{ for user in users }}  - {{ user.name }}
+{{ /for }}{{ /if }}
+Inline with the surrounding text:
+Items: {{ for fruit in fruits }}{{ fruit }}, {{ /for }}done.

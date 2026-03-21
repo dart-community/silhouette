@@ -280,14 +280,23 @@ enum TokenType {
   /// an if statement block.
   elseKeyword,
 
+  /// The `for` keyword for loop rendering.
+  ///
+  /// Used in `{{ for <variable> in <iterable> }}` to begin a loop block.
+  forKeyword,
+
+  /// The `in` keyword used in for loop syntax.
+  ///
+  /// Used in `{{ for <variable> in <iterable> }}` to separate the
+  /// loop variable from the iterable expression.
+  inKeyword,
+
   /// Reserved keywords for future language features.
   ///
   /// Currently includes:
   ///
-  /// - `for`
   /// - `let`
   /// - `set`
-  /// - `in`
   /// - `include`
   /// - `render`
   ///

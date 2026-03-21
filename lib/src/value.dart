@@ -130,6 +130,22 @@ base mixin SilhouetteEquatable on SilhouetteValue {
   String toString() => throw UnimplementedError('You must override toString.');
 }
 
+/// A mixin that indicates iteration capability to Silhouette values.
+///
+/// Values that implement this mixin can be iterated over in templates
+/// using `{{ for <variable> in <iterable> }}` loops.
+///
+/// Classes using this mixin must implement the [values] getter
+/// that returns the sequence of values to iterate over.
+base mixin SilhouetteIterable<Value extends SilhouetteValue>
+    on SilhouetteValue {
+  /// The iterable sequence of values.
+  ///
+  /// Used by for loops to produce the sequence of values
+  /// that the loop variable is bound to on each iteration.
+  Iterable<Value> get values;
+}
+
 /// A mixin that adds indexing capability to Silhouette values.
 ///
 /// Values that implement this mixin can be accessed using bracket notation
@@ -588,7 +604,7 @@ final class SilhouetteDouble extends SilhouetteNumber {
 @immutable
 final class SilhouetteList<Value extends SilhouetteValue>
     extends SilhouetteValue
-    with SilhouetteIndexable<SilhouetteInt, Value> {
+    with SilhouetteIterable<Value>, SilhouetteIndexable<SilhouetteInt, Value> {
   /// The list of values.
   final List<Value> value;
 
@@ -665,6 +681,9 @@ final class SilhouetteList<Value extends SilhouetteValue>
   }
 
   @override
+  Iterable<Value> get values => value;
+
+  @override
   Value _valueForKey(SilhouetteInt key) {
     final index = key.value;
     if (index < 0 || index >= value.length) {
@@ -698,12 +717,16 @@ final class SilhouetteList<Value extends SilhouetteValue>
 /// ```
 @immutable
 final class SilhouetteSet<Value extends SilhouetteEquatable>
-    extends SilhouetteValue {
+    extends SilhouetteValue
+    with SilhouetteIterable<Value> {
   /// The set of values.
   final Set<Value> value;
 
   /// Creates a set value with the given [value] set.
   const SilhouetteSet(this.value);
+
+  @override
+  Iterable<Value> get values => value;
 
   @override
   Future<SilhouetteValue> retrieve(SilhouetteIdentifier propertyName) async {

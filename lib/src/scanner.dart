@@ -608,12 +608,9 @@ final class Scanner {
     'null' => TokenType.nullKeyword,
     'if' => TokenType.ifKeyword,
     'else' => TokenType.elseKeyword,
-    'for' ||
-    'let' ||
-    'set' ||
-    'in' ||
-    'include' ||
-    'render' => TokenType.reservedKeyword,
+    'for' => TokenType.forKeyword,
+    'in' => TokenType.inKeyword,
+    'let' || 'set' || 'include' || 'render' => TokenType.reservedKeyword,
     _ => TokenType.identifier,
   };
 

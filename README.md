@@ -106,6 +106,24 @@ I'm searching for "{{ rawText.trim().toLowerCase() }}".
 {{ /if }}
 ```
 
+### Looping
+
+```sil
+{{ for item in items }}
+  {{ item }}
+{{ /for }}
+
+{{ for user in users }}
+  {{ user.name }} ({{ user.email }})
+{{ /for }}
+
+{{ for row in matrix }}
+  {{ for cell in row }}
+    {{ cell }}
+  {{ /for }}
+{{ /for }}
+```
+
 ### Whitespace control
 
 ```sil

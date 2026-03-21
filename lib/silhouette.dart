@@ -28,6 +28,7 @@ export 'src/value.dart'
         SilhouetteIdentifier,
         SilhouetteIndexable,
         SilhouetteInt,
+        SilhouetteIterable,
         SilhouetteList,
         SilhouetteMap,
         SilhouetteNull,
