@@ -387,7 +387,6 @@ final class Scanner {
   /// Recognizes operators, delimiters, and other single-character
   /// tokens used in template expressions. Returns `null` if the
   /// current character doesn't match any known single-character token.
-  @useResult
   Token? _scanSingleCharToken() {
     if (_isAtEnd()) return null;
 
@@ -440,7 +439,6 @@ final class Scanner {
   /// - `\\` → backslash
   /// - `\'` → single quote
   /// - `\"` → double quote
-  @useResult
   Token? _scanStringLiteral() {
     if (_isAtEnd()) return null;
 
@@ -511,7 +509,6 @@ final class Scanner {
   /// Supported formats:
   /// - Integers: `42`, `0`, `123`, `-5`, `-100`
   /// - Decimals: `3.14`, `0.5`, `123.456`, `-3.14`, `-0.5`
-  @useResult
   Token? _scanNumberLiteral() {
     if (_isAtEnd()) return null;
 
@@ -567,7 +564,6 @@ final class Scanner {
   ///
   /// Identifiers must start with a letter or underscore and can contain
   /// letters, digits, and underscores.
-  @useResult
   Token? _scanIdentifierOrKeyword() {
     if (_isAtEnd()) return null;
 

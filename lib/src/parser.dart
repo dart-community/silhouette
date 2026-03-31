@@ -109,7 +109,6 @@ final class Parser {
   ///
   /// Throws [ParseException] if the tag is malformed or contains
   /// invalid expression syntax.
-  @useResult
   Statement _parseTagExpression() {
     _consume(TokenType.openTag, 'Expected opening tag {{');
 
@@ -136,7 +135,6 @@ final class Parser {
   ///
   /// Creates an [IfStatement] with the else if and else branches
   /// represented recursively in the [IfStatement.elseBranch].
-  @useResult
   Statement _parseIfStatement({bool isElseIf = false}) {
     _consume(TokenType.ifKeyword, 'Expected if keyword');
     final condition = _parseExpression();
@@ -175,7 +173,6 @@ final class Parser {
   /// Parses the body of an if/else-if/else branch.
   ///
   /// Collects statements until encountering `{{ else ...` or `{{ /if }}`.
-  @useResult
   Statement _parseIfBody() {
     final statements = <Statement>[];
 
@@ -204,7 +201,6 @@ final class Parser {
   ///
   /// Creates a [ForStatement] with a loop variable, iterable expression,
   /// and body that is rendered for each element of the iterable.
-  @useResult
   Statement _parseForStatement() {
     _consume(TokenType.forKeyword, 'Expected for keyword');
     final variable = _consume(
@@ -232,7 +228,6 @@ final class Parser {
   /// Parses the body of a for loop.
   ///
   /// Collects statements until encountering `{{ /for }}`.
-  @useResult
   Statement _parseForBody() {
     final statements = <Statement>[];
 
@@ -288,7 +283,6 @@ final class Parser {
   /// Currently delegates to [_parsePrimary], but provides a clear
   /// entry point for future expansion when operator precedence
   /// and additional expression types are added.
-  @useResult
   Expression _parseExpression() => _parsePrimary();
 
   /// Parses a primary expression and any postfix operations.
@@ -303,7 +297,6 @@ final class Parser {
   ///
   /// This allows for complex chaining like:
   /// `user.getAddress().street.toUpperCase().substring(0, end: 10)`
-  @useResult
   Expression _parsePrimary() {
     var expr = _parsePrimaryBase();
 
@@ -338,7 +331,6 @@ final class Parser {
   /// - Grouped expressions: `(expression)`
   ///
   /// Throws [ParseException] for unexpected tokens.
-  @useResult
   Expression _parsePrimaryBase() {
     final token = _peek();
 
@@ -362,7 +354,6 @@ final class Parser {
   /// Creates a [LiteralExpression] with the string value from the token.
   /// The scanner handles escape sequence processing, so the token value
   /// is already the final string content.
-  @useResult
   Expression _parseStringLiteral() {
     final token = _advance();
     return LiteralExpression(token, value: token.value);
@@ -374,7 +365,6 @@ final class Parser {
   /// depending on whether the number contains a decimal point.
   /// Uses the [_parseNumber] helper to convert the string to
   /// the appropriate numeric type.
-  @useResult
   Expression _parseNumberLiteral() {
     final token = _advance();
     final value = _parseNumber(token.value);
@@ -423,7 +413,6 @@ final class Parser {
   ///
   /// Example: `user.name` where `user` is the object and `name` is
   /// the property being accessed.
-  @useResult
   Expression _parsePropertyAccess(Expression object) {
     final dotToken = _consume(TokenType.dot, 'Expected .');
     final identifier = _consume(
@@ -443,7 +432,6 @@ final class Parser {
   /// - `items[0]` - Array access with integer index
   /// - `data['key']` - Map access with string key
   /// - `matrix[i][j]` - Nested array access
-  @useResult
   Expression _parseIndexAccess(Expression object) {
     final leftBracket = _consume(TokenType.openSquareBracket, 'Expected [');
     final index = _parseExpression();
@@ -473,7 +461,6 @@ final class Parser {
   ///
   /// Throws [ParseException] for duplicate named parameters or
   /// malformed argument syntax.
-  @useResult
   Expression _parseFunctionCall(Expression callee) {
     final leftParen = _consume(TokenType.openParenthesis, 'Expected (');
 
@@ -528,7 +515,6 @@ final class Parser {
   /// Uses single-token lookahead to detect the `identifier : expression`
   /// pattern without consuming tokens. This allows the parser to decide
   /// between named and positional arguments.
-  @useResult
   bool _isNamedArgument() => _peekAt(1).type == TokenType.colon;
 
   /// Parses a named argument in the form `name: expression`.
@@ -564,7 +550,6 @@ final class Parser {
   /// - `"0"` → `0` (int)
   ///
   /// Throws a [FormatException] if the string is not a valid number.
-  @useResult
   num _parseNumber(String value) =>
       value.contains('.') ? double.parse(value) : int.parse(value);
 
@@ -575,7 +560,6 @@ final class Parser {
   /// returns `false` and leaves the token unconsumed if it doesn't match.
   ///
   /// Commonly used for parsing optional elements like trailing commas.
-  @useResult
   bool _match(TokenType type) {
     if (_peek().type == type) {
       _advance();
@@ -623,7 +607,6 @@ final class Parser {
   ///
   /// Returns `true` when the current token is the end-of-file marker,
   /// indicating that there are no more tokens to process.
-  @useResult
   bool _isAtEnd() => _peek().type == TokenType.endOfFile;
 
   /// Peeks at the current token without advancing.
@@ -631,11 +614,9 @@ final class Parser {
   /// Returns the token at the current position for inspection
   /// without consuming it. This is safe to call even at the end
   /// of the token stream (returns the end-of-file token).
-  @useResult
   Token _peek() => _tokens[_current];
 
   /// Peeks at the token at the given [offset] from the current position.
-  @useResult
   Token _peekAt(int offset) {
     final index = _current + offset;
     if (index >= _tokens.length) {
@@ -649,6 +630,5 @@ final class Parser {
   /// Returns the token that was most recently consumed. If at the
   /// beginning of the token stream, returns the first token.
   /// Used primarily by [_advance] to return the consumed token.
-  @useResult
   Token _previous() => _tokens[_current > 0 ? _current - 1 : 0];
 }
