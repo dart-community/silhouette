@@ -1,4 +1,4 @@
-## 0.1.0-wip
+## 0.1.0
 
 - Added support for `if` statements.
 - Added support for `for` loops.
