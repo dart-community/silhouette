@@ -31,18 +31,15 @@ final class TemplateRenderer {
     SilhouetteObject? context,
   ]) async {
     final evaluator = _TemplateEvaluator([_globalContext, ?context]);
-    await statement.accept(evaluator);
+    await evaluator._executeStatement(statement);
     return evaluator._output.toString();
   }
 }
 
-/// Internal evaluator that implements the visitor pattern for AST traversal.
+/// Internal evaluator that walks the AST with exhaustive `switch` dispatch.
 ///
 /// Handles the actual evaluation of a single parent statement or expression.
-final class _TemplateEvaluator
-    implements
-        ExpressionVisitor<Future<SilhouetteValue>>,
-        StatementVisitor<Future<void>> {
+final class _TemplateEvaluator {
   /// The scope chain for variable resolution.
   ///
   /// Scopes are searched from innermost (end of list) to outermost (beginning)
@@ -58,27 +55,26 @@ final class _TemplateEvaluator
   /// The [_scopes] list should be ordered from outermost to innermost scope.
   _TemplateEvaluator(this._scopes);
 
-  @override
-  Future<void> visitOrderedStatements(OrderedStatements stmt) async {
-    for (final childStmt in stmt.statements) {
-      await childStmt.accept(this);
+  Future<void> _executeStatement(Statement stmt) async {
+    switch (stmt) {
+      case OrderedStatements(:final statements):
+        for (final childStmt in statements) {
+          await _executeStatement(childStmt);
+        }
+      case TextOutputStatement(:final text):
+        _output.write(text);
+      case ExpressionOutputStatement(:final expression):
+        final value = await _evaluateExpression(expression);
+        _output.write(value.toString());
+      case ForStatement():
+        await _executeForStatement(stmt);
+      case IfStatement():
+        await _executeIfStatement(stmt);
     }
   }
 
-  @override
-  Future<void> visitTextOutput(TextOutputStatement stmt) async {
-    _output.write(stmt.text);
-  }
-
-  @override
-  Future<void> visitExpressionOutput(ExpressionOutputStatement stmt) async {
-    final value = await stmt.expression.accept(this);
-    _output.write(value.toString());
-  }
-
-  @override
-  Future<void> visitForStatement(ForStatement stmt) async {
-    final iterableValue = await stmt.iterable.accept(this);
+  Future<void> _executeForStatement(ForStatement stmt) async {
+    final iterableValue = await _evaluateExpression(stmt.iterable);
     if (iterableValue is! SilhouetteIterable<SilhouetteValue>) {
       throw SilhouetteException(
         'For loop requires an iterable, got ${iterableValue.runtimeType}',
@@ -92,16 +88,15 @@ final class _TemplateEvaluator
       final loopScope = SilhouetteObject({variableName: element});
       _scopes.add(loopScope);
       try {
-        await stmt.body.accept(this);
+        await _executeStatement(stmt.body);
       } finally {
         _scopes.removeLast();
       }
     }
   }
 
-  @override
-  Future<void> visitIfStatement(IfStatement stmt) async {
-    final conditionValue = await stmt.condition.accept(this);
+  Future<void> _executeIfStatement(IfStatement stmt) async {
+    final conditionValue = await _evaluateExpression(stmt.condition);
     if (conditionValue is! SilhouetteBool) {
       throw SilhouetteException(
         'If condition must be a boolean, got ${conditionValue.runtimeType}',
@@ -109,14 +104,36 @@ final class _TemplateEvaluator
     }
 
     if (conditionValue.value) {
-      await stmt.body.accept(this);
+      await _executeStatement(stmt.body);
     } else if (stmt.elseBranch case final elseBranch?) {
-      await elseBranch.accept(this);
+      await _executeStatement(elseBranch);
     }
   }
 
-  @override
-  Future<SilhouetteValue> visitIdentifier(
+  Future<SilhouetteValue> _evaluateExpression(Expression expr) async {
+    return switch (expr) {
+      IdentifierExpression() => _evaluateIdentifier(expr),
+      LiteralExpression(:final value) => switch (value) {
+        null => SilhouetteNull(),
+        String() => SilhouetteString(value),
+        int() => SilhouetteInt(value),
+        double() => SilhouetteDouble(value),
+        bool() => SilhouetteBool(value),
+        _ => throw SilhouetteException(
+          'Unsupported literal type: ${value.runtimeType}',
+        ),
+      },
+      PropertyAccessExpression(:final object, :final identifier) =>
+        await (await _evaluateExpression(
+          object,
+        )).retrieve(SilhouetteIdentifier(identifier.value)),
+      IndexAccessExpression(:final object, :final index) =>
+        await _evaluateIndexAccess(object, index),
+      CallExpression() => await _evaluateCall(expr),
+    };
+  }
+
+  Future<SilhouetteValue> _evaluateIdentifier(
     IdentifierExpression identifier,
   ) async {
     final key = SilhouetteIdentifier(identifier.token.value);
@@ -137,35 +154,12 @@ final class _TemplateEvaluator
     );
   }
 
-  @override
-  Future<SilhouetteValue> visitLiteral(LiteralExpression literal) async {
-    final value = literal.value;
-    return switch (value) {
-      null => SilhouetteNull(),
-      String() => SilhouetteString(value),
-      int() => SilhouetteInt(value),
-      double() => SilhouetteDouble(value),
-      bool() => SilhouetteBool(value),
-      _ => throw SilhouetteException(
-        'Unsupported literal type: ${value.runtimeType}',
-      ),
-    };
-  }
-
-  @override
-  Future<SilhouetteValue> visitPropertyAccess(
-    PropertyAccessExpression access,
+  Future<SilhouetteValue> _evaluateIndexAccess(
+    Expression objectExpr,
+    Expression indexExpr,
   ) async {
-    final object = await access.object.accept(this);
-    return await object.retrieve(SilhouetteIdentifier(access.identifier.value));
-  }
-
-  @override
-  Future<SilhouetteValue> visitIndexAccess(
-    IndexAccessExpression access,
-  ) async {
-    final object = await access.object.accept(this);
-    final indexValue = await access.index.accept(this);
+    final object = await _evaluateExpression(objectExpr);
+    final indexValue = await _evaluateExpression(indexExpr);
 
     if (object is! SilhouetteIndexable) {
       throw SilhouetteException(
@@ -176,9 +170,8 @@ final class _TemplateEvaluator
     return object.forKey(indexValue);
   }
 
-  @override
-  Future<SilhouetteValue> visitCall(CallExpression call) async {
-    final target = await call.callee.accept(this);
+  Future<SilhouetteValue> _evaluateCall(CallExpression call) async {
+    final target = await _evaluateExpression(call.callee);
 
     if (target is SilhouetteFunction) {
       final evaluatedArguments = await _evaluateArguments(call);
@@ -193,11 +186,12 @@ final class _TemplateEvaluator
   Future<SilhouetteArguments> _evaluateArguments(CallExpression call) async =>
       SilhouetteArguments(
         positional: [
-          for (final arg in call.positionalArguments) await arg.accept(this),
+          for (final arg in call.positionalArguments)
+            await _evaluateExpression(arg),
         ],
         named: {
           for (final MapEntry(:key, :value) in call.namedArguments.entries)
-            SilhouetteIdentifier(key): await value.accept(this),
+            SilhouetteIdentifier(key): await _evaluateExpression(value),
         },
       );
 }

@@ -105,17 +105,14 @@ void main() {
         expect(nested.elseBranch, same(elseBody));
       });
 
-      test('accepts statement visitor', () {
+      test('matches IfStatement in a sealed switch', () {
         final condition = IdentifierExpression(
           testToken(TokenType.identifier, 'show'),
         );
         const body = TextOutputStatement('Hello');
-        final stmt = IfStatement(condition: condition, body: body);
+        final Statement stmt = IfStatement(condition: condition, body: body);
 
-        final visitor = _TestStatementVisitor();
-        final result = stmt.accept(visitor);
-        expect(result, equals('ifStatement'));
-        expect(visitor.lastIfStmt, same(stmt));
+        expect(_statementKind(stmt), equals('ifStatement'));
       });
     });
 
@@ -137,39 +134,31 @@ void main() {
         expect(stmt.body, same(body));
       });
 
-      test('accepts statement visitor', () {
+      test('matches ForStatement in a sealed switch', () {
         final variable = testToken(TokenType.identifier, 'item');
         final iterable = IdentifierExpression(
           testToken(TokenType.identifier, 'items'),
         );
         const body = TextOutputStatement('Hello');
-        final stmt = ForStatement(
+        final Statement stmt = ForStatement(
           variable: variable,
           iterable: iterable,
           body: body,
         );
 
-        final visitor = _TestStatementVisitor();
-        final result = stmt.accept(visitor);
-        expect(result, equals('forStatement'));
-        expect(visitor.lastForStmt, same(stmt));
+        expect(_statementKind(stmt), equals('forStatement'));
       });
     });
   });
 
   group('Expression classes', () {
     group('IdentifierExpression', () {
-      test('stores token and implements visitor pattern', () {
+      test('stores token and matches in a sealed switch', () {
         final token = testToken(TokenType.identifier, 'variableName');
-        final expr = IdentifierExpression(token);
+        final Expression expr = IdentifierExpression(token);
 
-        expect(expr.token, same(token));
-
-        // Test visitor pattern.
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('identifier'));
-        expect(visitor.lastIdentifierExpr, same(expr));
+        expect((expr as IdentifierExpression).token, same(token));
+        expect(_expressionKind(expr), equals('identifier'));
       });
     });
 
@@ -182,14 +171,11 @@ void main() {
         expect(expr.value, equals('hello'));
       });
 
-      test('implements visitor pattern', () {
+      test('matches LiteralExpression in a sealed switch', () {
         final token = testToken(TokenType.numberLiteral, '42');
-        final expr = LiteralExpression(token, value: 42);
+        final Expression expr = LiteralExpression(token, value: 42);
 
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('literal'));
-        expect(visitor.lastLiteralExpr, same(expr));
+        expect(_expressionKind(expr), equals('literal'));
       });
 
       test('can have null value', () {
@@ -220,20 +206,17 @@ void main() {
         expect(expr.identifier, same(identifierToken));
       });
 
-      test('implements visitor pattern', () {
+      test('matches PropertyAccessExpression in a sealed switch', () {
         final objectExpr = IdentifierExpression(
           testToken(TokenType.identifier, 'obj'),
         );
-        final expr = PropertyAccessExpression(
+        final Expression expr = PropertyAccessExpression(
           objectExpr,
           testToken(TokenType.dot, '.'),
           testToken(TokenType.identifier, 'prop'),
         );
 
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('propertyAccess'));
-        expect(visitor.lastPropertyAccessExpr, same(expr));
+        expect(_expressionKind(expr), equals('propertyAccess'));
       });
     });
 
@@ -262,7 +245,7 @@ void main() {
         expect(expr.rightBracketToken, same(rightBracketToken));
       });
 
-      test('implements visitor pattern', () {
+      test('matches IndexAccessExpression in a sealed switch', () {
         final objectExpr = IdentifierExpression(
           testToken(TokenType.identifier, 'arr'),
         );
@@ -270,17 +253,14 @@ void main() {
           testToken(TokenType.numberLiteral, '1'),
           value: 1,
         );
-        final expr = IndexAccessExpression(
+        final Expression expr = IndexAccessExpression(
           objectExpr,
           testToken(TokenType.openSquareBracket, '['),
           indexExpr,
           testToken(TokenType.closeSquareBracket, ']'),
         );
 
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('indexAccess'));
-        expect(visitor.lastIndexAccessExpr, same(expr));
+        expect(_expressionKind(expr), equals('indexAccess'));
       });
     });
 
@@ -333,11 +313,11 @@ void main() {
         expect(expr.namedArguments, isEmpty);
       });
 
-      test('implements visitor pattern', () {
+      test('matches CallExpression in a sealed switch', () {
         final calleeExpr = IdentifierExpression(
           testToken(TokenType.identifier, 'fn'),
         );
-        final expr = CallExpression(
+        final Expression expr = CallExpression(
           calleeExpr,
           testToken(TokenType.openParenthesis, '('),
           const [],
@@ -345,16 +325,13 @@ void main() {
           testToken(TokenType.closeParenthesis, ')'),
         );
 
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('call'));
-        expect(visitor.lastCallExpr, same(expr));
+        expect(_expressionKind(expr), equals('call'));
       });
     });
   });
 
-  group('Visitor pattern integration', () {
-    test('complex expression tree works with visitor', () {
+  group('Sealed dispatch integration', () {
+    test('complex expression tree dispatches via switch', () {
       // Create expression: user.getName(true, format: "short")
       final userExpr = IdentifierExpression(
         testToken(TokenType.identifier, 'user'),
@@ -364,7 +341,7 @@ void main() {
         testToken(TokenType.dot, '.'),
         testToken(TokenType.identifier, 'getName'),
       );
-      final callExpr = CallExpression(
+      final Expression callExpr = CallExpression(
         propertyExpr,
         testToken(TokenType.openParenthesis, '('),
         [
@@ -382,13 +359,10 @@ void main() {
         testToken(TokenType.closeParenthesis, ')'),
       );
 
-      final visitor = _TestVisitor();
-      final result = callExpr.accept(visitor);
-      expect(result, equals('call'));
-      expect(visitor.lastCallExpr, same(callExpr));
+      expect(_expressionKind(callExpr), equals('call'));
     });
 
-    test('nested property access works with visitor', () {
+    test('nested property access dispatches via switch', () {
       // Create expression: user.profile.name
       final userExpr = IdentifierExpression(
         testToken(TokenType.identifier, 'user'),
@@ -398,19 +372,16 @@ void main() {
         testToken(TokenType.dot, '.'),
         testToken(TokenType.identifier, 'profile'),
       );
-      final nameExpr = PropertyAccessExpression(
+      final Expression nameExpr = PropertyAccessExpression(
         profileExpr,
         testToken(TokenType.dot, '.'),
         testToken(TokenType.identifier, 'name'),
       );
 
-      final visitor = _TestVisitor();
-      final result = nameExpr.accept(visitor);
-      expect(result, equals('propertyAccess'));
-      expect(visitor.lastPropertyAccessExpr, same(nameExpr));
+      expect(_expressionKind(nameExpr), equals('propertyAccess'));
     });
 
-    test('array access with expression index works', () {
+    test('array access with expression index dispatches via switch', () {
       // Create expression: items[key.index]
       final itemsExpr = IdentifierExpression(
         testToken(TokenType.identifier, 'items'),
@@ -423,84 +394,34 @@ void main() {
         testToken(TokenType.dot, '.'),
         testToken(TokenType.identifier, 'index'),
       );
-      final expr = IndexAccessExpression(
+      final Expression expr = IndexAccessExpression(
         itemsExpr,
         testToken(TokenType.openSquareBracket, '['),
         propertyExpr,
         testToken(TokenType.closeSquareBracket, ']'),
       );
 
-      final visitor = _TestVisitor();
-      final result = expr.accept(visitor);
-      expect(result, equals('indexAccess'));
-      expect(visitor.lastIndexAccessExpr, same(expr));
+      expect(_expressionKind(expr), equals('indexAccess'));
     });
   });
 }
 
-/// Test implementation of [StatementVisitor] for testing the visitor pattern.
-class _TestStatementVisitor implements StatementVisitor<String> {
-  IfStatement? lastIfStmt;
-  ForStatement? lastForStmt;
+/// Returns a label for the concrete subtype of [stmt] using exhaustive
+/// switch dispatch over the sealed [Statement] hierarchy.
+String _statementKind(Statement stmt) => switch (stmt) {
+  OrderedStatements() => 'orderedStatements',
+  TextOutputStatement() => 'textOutput',
+  ExpressionOutputStatement() => 'expressionOutput',
+  IfStatement() => 'ifStatement',
+  ForStatement() => 'forStatement',
+};
 
-  @override
-  String visitOrderedStatements(OrderedStatements stmt) => 'orderedStatements';
-
-  @override
-  String visitTextOutput(TextOutputStatement stmt) => 'textOutput';
-
-  @override
-  String visitExpressionOutput(ExpressionOutputStatement stmt) =>
-      'expressionOutput';
-
-  @override
-  String visitIfStatement(IfStatement stmt) {
-    lastIfStmt = stmt;
-    return 'ifStatement';
-  }
-
-  @override
-  String visitForStatement(ForStatement stmt) {
-    lastForStmt = stmt;
-    return 'forStatement';
-  }
-}
-
-/// Test implementation of [ExpressionVisitor] for testing the visitor pattern.
-class _TestVisitor implements ExpressionVisitor<String> {
-  IdentifierExpression? lastIdentifierExpr;
-  LiteralExpression? lastLiteralExpr;
-  PropertyAccessExpression? lastPropertyAccessExpr;
-  IndexAccessExpression? lastIndexAccessExpr;
-  CallExpression? lastCallExpr;
-
-  @override
-  String visitIdentifier(IdentifierExpression expr) {
-    lastIdentifierExpr = expr;
-    return 'identifier';
-  }
-
-  @override
-  String visitLiteral(LiteralExpression expr) {
-    lastLiteralExpr = expr;
-    return 'literal';
-  }
-
-  @override
-  String visitPropertyAccess(PropertyAccessExpression expr) {
-    lastPropertyAccessExpr = expr;
-    return 'propertyAccess';
-  }
-
-  @override
-  String visitIndexAccess(IndexAccessExpression expr) {
-    lastIndexAccessExpr = expr;
-    return 'indexAccess';
-  }
-
-  @override
-  String visitCall(CallExpression expr) {
-    lastCallExpr = expr;
-    return 'call';
-  }
-}
+/// Returns a label for the concrete subtype of [expr] using exhaustive
+/// switch dispatch over the sealed [Expression] hierarchy.
+String _expressionKind(Expression expr) => switch (expr) {
+  IdentifierExpression() => 'identifier',
+  LiteralExpression() => 'literal',
+  PropertyAccessExpression() => 'propertyAccess',
+  IndexAccessExpression() => 'indexAccess',
+  CallExpression() => 'call',
+};

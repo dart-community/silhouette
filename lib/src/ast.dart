@@ -2,21 +2,14 @@ import 'package:meta/meta.dart';
 
 import 'token.dart';
 
-/// Abstract base class for each AST statement node in Silhouette.
+/// Sealed base class for each AST statement node in Silhouette.
 ///
 /// Statements represent the structural components of a template, including
 /// text content, expression outputs, and ordered sequences of statements.
-///
-/// This class uses the visitor pattern for traversal and evaluation.
-/// Implementations must provide an [accept] method that
-/// delegates to the appropriate visitor method.
 @immutable
-abstract base class Statement {
+sealed class Statement {
   /// Creates a new statement.
   const Statement();
-
-  /// Accepts a [visitor] and delegates to the appropriate visit method.
-  R accept<R>(StatementVisitor<R> visitor);
 }
 
 /// A statement that contains an ordered sequence of child statements.
@@ -36,10 +29,6 @@ final class OrderedStatements extends Statement {
 
   /// Creates an ordered statements container with the given [statements].
   const OrderedStatements(this.statements);
-
-  @override
-  R accept<R>(StatementVisitor<R> visitor) =>
-      visitor.visitOrderedStatements(this);
 }
 
 /// A statement that outputs static text content.
@@ -52,9 +41,6 @@ final class TextOutputStatement extends Statement {
 
   /// Creates a text output statement with the given [text].
   const TextOutputStatement(this.text);
-
-  @override
-  R accept<R>(StatementVisitor<R> visitor) => visitor.visitTextOutput(this);
 }
 
 /// A statement that evaluates and outputs an expression.
@@ -68,10 +54,6 @@ final class ExpressionOutputStatement extends Statement {
 
   /// Creates an expression output statement with the given [expression].
   const ExpressionOutputStatement(this.expression);
-
-  @override
-  R accept<R>(StatementVisitor<R> visitor) =>
-      visitor.visitExpressionOutput(this);
 }
 
 /// A statement that conditionally renders content
@@ -123,9 +105,6 @@ final class IfStatement extends Statement {
     required this.body,
     this.elseBranch,
   });
-
-  @override
-  R accept<R>(StatementVisitor<R> visitor) => visitor.visitIfStatement(this);
 }
 
 /// A statement that iterates over an iterable value,
@@ -167,72 +146,17 @@ final class ForStatement extends Statement {
     required this.iterable,
     required this.body,
   });
-
-  @override
-  R accept<R>(StatementVisitor<R> visitor) => visitor.visitForStatement(this);
 }
 
-/// Visitor interface for traversing and operating on statement nodes.
-///
-/// This interface defines methods for
-/// visiting each type of statement in the AST.
-/// Implementations can perform various operations such as
-/// rendering, code generation, or static analysis.
-abstract interface class StatementVisitor<R> {
-  /// Visits an ordered statements container.
-  R visitOrderedStatements(OrderedStatements stmt);
-
-  /// Visits a text output statement.
-  R visitTextOutput(TextOutputStatement stmt);
-
-  /// Visits an expression output statement.
-  R visitExpressionOutput(ExpressionOutputStatement stmt);
-
-  /// Visits an if statement.
-  R visitIfStatement(IfStatement stmt);
-
-  /// Visits a for statement.
-  R visitForStatement(ForStatement stmt);
-}
-
-/// Abstract base class for all expression nodes in the AST.
+/// Sealed base class for all expression nodes in the AST.
 ///
 /// Expressions represent computations that can be evaluated to produce values,
 /// such as variable references, literals, property accesses,
 /// method calls, and indexing operations.
-///
-/// Uses the visitor pattern for traversal and evaluation.
-/// Implementations must provide an [accept] method that
-/// delegates to the appropriate visitor method.
 @immutable
-abstract base class Expression {
+sealed class Expression {
   /// Creates a new expression.
   const Expression();
-
-  /// Accepts a [visitor] and delegates to the appropriate visit method.
-  R accept<R>(ExpressionVisitor<R> visitor);
-}
-
-/// Visitor interface for traversing and operating on expression nodes.
-///
-/// This interface defines methods for visiting each type of expression
-/// in the AST. Implementations can perform various operations such as
-/// evaluation, code generation, or static analysis.
-abstract interface class ExpressionVisitor<R> {
-  /// Visits an identifier expression.
-  R visitIdentifier(IdentifierExpression expr);
-
-  /// Visits a literal expression.
-  R visitLiteral(LiteralExpression expr);
-
-  /// Visits a property access expression.
-  R visitPropertyAccess(PropertyAccessExpression expr);
-
-  /// Visits an index access expression.
-  R visitIndexAccess(IndexAccessExpression expr);
-
-  /// Visits a function call expression.
-  R visitCall(CallExpression expr);
 }
 
 /// An expression representing a variable or identifier reference.
@@ -247,9 +171,6 @@ final class IdentifierExpression extends Expression {
 
   /// Creates an identifier expression from the given [token].
   const IdentifierExpression(this.token);
-
-  @override
-  R accept<R>(ExpressionVisitor<R> visitor) => visitor.visitIdentifier(this);
 }
 
 /// An expression representing a literal value.
@@ -273,9 +194,6 @@ final class LiteralExpression extends Expression {
 
   /// Creates a literal expression with the given [token] and parsed [value].
   const LiteralExpression(this.token, {required this.value});
-
-  @override
-  R accept<R>(ExpressionVisitor<R> visitor) => visitor.visitLiteral(this);
 }
 
 /// An expression representing property access using dot notation.
@@ -300,10 +218,6 @@ final class PropertyAccessExpression extends Expression {
   /// [object] is the expression being accessed,
   /// [dotToken] is the dot separator, and [identifier] is the property name.
   const PropertyAccessExpression(this.object, this.dotToken, this.identifier);
-
-  @override
-  R accept<R>(ExpressionVisitor<R> visitor) =>
-      visitor.visitPropertyAccess(this);
 }
 
 /// An expression representing index access using bracket notation.
@@ -337,9 +251,6 @@ final class IndexAccessExpression extends Expression {
     this.index,
     this.rightBracketToken,
   );
-
-  @override
-  R accept<R>(ExpressionVisitor<R> visitor) => visitor.visitIndexAccess(this);
 }
 
 /// An expression representing a function or method call.
@@ -378,7 +289,4 @@ final class CallExpression extends Expression {
     this.namedArguments,
     this.rightParenToken,
   );
-
-  @override
-  R accept<R>(ExpressionVisitor<R> visitor) => visitor.visitCall(this);
 }
