@@ -81,7 +81,7 @@ final class _TemplateEvaluator {
       );
     }
 
-    final variableName = SilhouetteIdentifier(stmt.variable.value);
+    final variableName = SilhouetteIdentifier.trusted(stmt.variable.value);
 
     for (final element in iterableValue.values) {
       // Create a scope with the loop variable for each iteration.
@@ -126,7 +126,7 @@ final class _TemplateEvaluator {
       PropertyAccessExpression(:final object, :final identifier) =>
         await (await _evaluateExpression(
           object,
-        )).retrieve(SilhouetteIdentifier(identifier.value)),
+        )).retrieve(SilhouetteIdentifier.trusted(identifier.value)),
       IndexAccessExpression(:final object, :final index) =>
         await _evaluateIndexAccess(object, index),
       CallExpression() => await _evaluateCall(expr),
@@ -136,7 +136,7 @@ final class _TemplateEvaluator {
   Future<SilhouetteValue> _evaluateIdentifier(
     IdentifierExpression identifier,
   ) async {
-    final key = SilhouetteIdentifier(identifier.token.value);
+    final key = SilhouetteIdentifier.trusted(identifier.token.value);
 
     // Try each scope from innermost to outermost.
     for (final scope in _scopes.reversed) {
@@ -191,7 +191,7 @@ final class _TemplateEvaluator {
         ],
         named: {
           for (final MapEntry(:key, :value) in call.namedArguments.entries)
-            SilhouetteIdentifier(key): await _evaluateExpression(value),
+            key: await _evaluateExpression(value),
         },
       );
 }

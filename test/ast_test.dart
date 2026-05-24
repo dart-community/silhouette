@@ -1,3 +1,4 @@
+import 'package:silhouette/silhouette.dart';
 import 'package:silhouette/src/ast.dart';
 import 'package:silhouette/src/token.dart';
 import 'package:test/test.dart';
@@ -284,7 +285,7 @@ void main() {
           calleeExpr,
           leftParenToken,
           [positionalArg],
-          {'key': namedArgValue},
+          {SilhouetteIdentifier('key'): namedArgValue},
           rightParenToken,
         );
 
@@ -293,7 +294,10 @@ void main() {
         expect(expr.positionalArguments.length, equals(1));
         expect(expr.positionalArguments[0], same(positionalArg));
         expect(expr.namedArguments.length, equals(1));
-        expect(expr.namedArguments['key'], same(namedArgValue));
+        expect(
+          expr.namedArguments[SilhouetteIdentifier('key')],
+          same(namedArgValue),
+        );
         expect(expr.rightParenToken, same(rightParenToken));
       });
 
@@ -351,7 +355,7 @@ void main() {
           ),
         ],
         {
-          'format': LiteralExpression(
+          SilhouetteIdentifier('format'): LiteralExpression(
             testToken(TokenType.stringLiteral, '"short"'),
             value: 'short',
           ),

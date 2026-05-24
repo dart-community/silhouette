@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'token.dart';
+import 'value.dart';
 
 /// Sealed base class for each AST statement node in Silhouette.
 ///
@@ -271,7 +272,7 @@ final class CallExpression extends Expression {
   final List<Expression> positionalArguments;
 
   /// The map of named arguments (parameter name to expression).
-  final Map<String, Expression> namedArguments;
+  final Map<SilhouetteIdentifier, Expression> namedArguments;
 
   /// The closing parenthesis token (for source location tracking).
   final Token rightParenToken;
