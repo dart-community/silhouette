@@ -91,7 +91,11 @@ abstract final class WhitespaceProcessor {
       }
 
       // Add token as a plain Token (strips any whitespace control flags).
-      result.add(Token(token.type, token.value, token.location));
+      if (token is TokenWithWhitespaceControl) {
+        result.add(Token(token.type, token.value, token.location));
+      } else {
+        result.add(token);
+      }
     }
 
     return result;
