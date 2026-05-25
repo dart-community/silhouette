@@ -30,10 +30,54 @@ final class TemplateRenderer {
     Statement statement, [
     SilhouetteObject? context,
   ]) async {
-    final evaluator = _TemplateEvaluator([_globalContext, ?context]);
+    final evaluator = _TemplateEvaluator([
+      _ObjectScope(_globalContext),
+      if (context != null) _ObjectScope(context),
+    ]);
     await evaluator._executeStatement(statement);
     return evaluator._output.toString();
   }
+}
+
+/// A frame in the renderer's identifier lookup chain.
+///
+/// Implementations return `null` for unbound identifiers.
+abstract interface class _Scope {
+  /// The value bound to [name], if this scope contains one.
+  SilhouetteValue? lookup(SilhouetteIdentifier name);
+}
+
+/// A scope frame backed by a [SilhouetteObject].
+final class _ObjectScope implements _Scope {
+  /// Creates a scope frame for [object].
+  _ObjectScope(this.object);
+
+  /// The object that supplies bindings for this scope.
+  final SilhouetteObject object;
+
+  /// Returns the value assigned to [name] in [object], if present.
+  @override
+  SilhouetteValue? lookup(SilhouetteIdentifier name) => object.value[name];
+}
+
+/// A scope frame for a single reusable loop variable binding.
+///
+/// The renderer mutates [value] for each loop iteration while keeping this
+/// frame on the scope chain for the duration of the loop.
+final class _LoopScope implements _Scope {
+  /// Creates a scope frame that binds [name].
+  _LoopScope(this.name);
+
+  /// The identifier this scope binds.
+  final SilhouetteIdentifier name;
+
+  /// The value currently bound to [name].
+  late SilhouetteValue value;
+
+  /// Returns the current [value] when [candidate] matches [name].
+  @override
+  SilhouetteValue? lookup(SilhouetteIdentifier candidate) =>
+      candidate == name ? value : null;
 }
 
 /// Internal evaluator that walks the AST with exhaustive `switch` dispatch.
@@ -45,7 +89,7 @@ final class _TemplateEvaluator {
   /// Scopes are searched from innermost (end of list) to outermost (beginning)
   /// for variable resolution. This supports nested scopes for future features
   /// like conditionals and loops.
-  final List<SilhouetteObject> _scopes;
+  final List<_Scope> _scopes;
 
   /// Buffer for collecting template output during evaluation.
   final StringBuffer _output = StringBuffer();
@@ -83,15 +127,15 @@ final class _TemplateEvaluator {
 
     final variableName = SilhouetteIdentifier.trusted(stmt.variable.value);
 
-    for (final element in iterableValue.values) {
-      // Create a scope with the loop variable for each iteration.
-      final loopScope = SilhouetteObject({variableName: element});
-      _scopes.add(loopScope);
-      try {
+    final loopScope = _LoopScope(variableName);
+    _scopes.add(loopScope);
+    try {
+      for (final element in iterableValue.values) {
+        loopScope.value = element;
         await _executeStatement(stmt.body);
-      } finally {
-        _scopes.removeLast();
       }
+    } finally {
+      _scopes.removeLast();
     }
   }
 
@@ -140,11 +184,8 @@ final class _TemplateEvaluator {
 
     // Try each scope from innermost to outermost.
     for (final scope in _scopes.reversed) {
-      try {
-        return await scope.retrieve(key);
-      } on UnknownPropertyException {
-        // Continue to next scope if variable not found in current scope.
-        continue;
+      if (scope.lookup(key) case final value?) {
+        return value;
       }
     }
 
