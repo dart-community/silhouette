@@ -667,11 +667,14 @@ void main() {
           'visible',
         );
 
-        expect(ifStmt.body, isA<OrderedStatements>());
-        final body = ifStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
-        expect(body.statements[0], isA<TextOutputStatement>());
-        expect((body.statements[0] as TextOutputStatement).text, 'Hello');
+        expect(
+          ifStmt.body,
+          isA<TextOutputStatement>().having(
+            (stmt) => stmt.text,
+            'text',
+            'Hello',
+          ),
+        );
 
         expect(ifStmt.elseBranch, isNull);
       });
@@ -683,16 +686,14 @@ void main() {
         expect(result, isA<IfStatement>());
         final ifStmt = result as IfStatement;
 
-        final body = ifStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
-        expect((body.statements[0] as TextOutputStatement).text, 'yes');
-
-        expect(ifStmt.elseBranch, isA<OrderedStatements>());
-        final elseBranch = ifStmt.elseBranch! as OrderedStatements;
-        expect(elseBranch.statements.length, 1);
         expect(
-          (elseBranch.statements[0] as TextOutputStatement).text,
-          'no',
+          ifStmt.body,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', 'yes'),
+        );
+
+        expect(
+          ifStmt.elseBranch,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', 'no'),
         );
       });
 
@@ -705,8 +706,10 @@ void main() {
         expect(result, isA<IfStatement>());
         final ifStmt = result as IfStatement;
 
-        final body = ifStmt.body as OrderedStatements;
-        expect((body.statements[0] as TextOutputStatement).text, '1');
+        expect(
+          ifStmt.body,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '1'),
+        );
 
         // An `else if` produces a nested `IfStatement`.
         expect(ifStmt.elseBranch, isA<IfStatement>());
@@ -716,12 +719,15 @@ void main() {
           (elseIf.condition as IdentifierExpression).token.value,
           'b',
         );
-        final elseIfBody = elseIf.body as OrderedStatements;
-        expect((elseIfBody.statements[0] as TextOutputStatement).text, '2');
+        expect(
+          elseIf.body,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '2'),
+        );
 
-        expect(elseIf.elseBranch, isA<OrderedStatements>());
-        final elseBody = elseIf.elseBranch! as OrderedStatements;
-        expect((elseBody.statements[0] as TextOutputStatement).text, '3');
+        expect(
+          elseIf.elseBranch,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '3'),
+        );
       });
 
       test('parses multiple else-if branches as nested chain', () {
@@ -740,8 +746,10 @@ void main() {
           (elseIf1.condition as IdentifierExpression).token.value,
           'b',
         );
-        final elseIf1Body = elseIf1.body as OrderedStatements;
-        expect((elseIf1Body.statements[0] as TextOutputStatement).text, '2');
+        expect(
+          elseIf1.body,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '2'),
+        );
 
         // Second `else if` branch.
         expect(elseIf1.elseBranch, isA<IfStatement>());
@@ -750,13 +758,16 @@ void main() {
           (elseIf2.condition as IdentifierExpression).token.value,
           'c',
         );
-        final elseIf2Body = elseIf2.body as OrderedStatements;
-        expect((elseIf2Body.statements[0] as TextOutputStatement).text, '3');
+        expect(
+          elseIf2.body,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '3'),
+        );
 
         // Final `else` branch.
-        expect(elseIf2.elseBranch, isA<OrderedStatements>());
-        final finalElse = elseIf2.elseBranch! as OrderedStatements;
-        expect((finalElse.statements[0] as TextOutputStatement).text, '4');
+        expect(
+          elseIf2.elseBranch,
+          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '4'),
+        );
       });
 
       test('parses nested if statements', () {
@@ -768,16 +779,16 @@ void main() {
         expect(result, isA<IfStatement>());
         final outerIf = result as IfStatement;
 
-        final outerBody = outerIf.body as OrderedStatements;
-        expect(outerBody.statements.length, 1);
-        expect(outerBody.statements[0], isA<IfStatement>());
-        final innerIf = outerBody.statements[0] as IfStatement;
+        expect(outerIf.body, isA<IfStatement>());
+        final innerIf = outerIf.body as IfStatement;
 
-        final innerBody = innerIf.body as OrderedStatements;
-        expect(innerBody.statements.length, 1);
         expect(
-          (innerBody.statements[0] as TextOutputStatement).text,
-          'nested',
+          innerIf.body,
+          isA<TextOutputStatement>().having(
+            (stmt) => stmt.text,
+            'text',
+            'nested',
+          ),
         );
       });
 
@@ -823,11 +834,13 @@ void main() {
         expect(ifStmt.condition, isA<LiteralExpression>());
         expect((ifStmt.condition as LiteralExpression).value, true);
 
-        final body = ifStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
         expect(
-          (body.statements[0] as TextOutputStatement).text,
-          'always',
+          ifStmt.body,
+          isA<TextOutputStatement>().having(
+            (stmt) => stmt.text,
+            'text',
+            'always',
+          ),
         );
       });
 
@@ -871,10 +884,7 @@ void main() {
           'items',
         );
 
-        expect(forStmt.body, isA<OrderedStatements>());
-        final body = forStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
-        expect(body.statements[0], isA<ExpressionOutputStatement>());
+        expect(forStmt.body, isA<ExpressionOutputStatement>());
       });
 
       test('parses for with text body', () {
@@ -884,10 +894,14 @@ void main() {
         expect(result, isA<ForStatement>());
         final forStmt = result as ForStatement;
 
-        final body = forStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
-        expect(body.statements[0], isA<TextOutputStatement>());
-        expect((body.statements[0] as TextOutputStatement).text, 'hello');
+        expect(
+          forStmt.body,
+          isA<TextOutputStatement>().having(
+            (stmt) => stmt.text,
+            'text',
+            'hello',
+          ),
+        );
       });
 
       test('parses for with property access iterable', () {
@@ -955,11 +969,8 @@ void main() {
         final outerFor = result as ForStatement;
         expect(outerFor.variable.value, 'row');
 
-        final outerBody = outerFor.body as OrderedStatements;
-        expect(outerBody.statements.length, 1);
-        expect(outerBody.statements[0], isA<ForStatement>());
-
-        final innerFor = outerBody.statements[0] as ForStatement;
+        expect(outerFor.body, isA<ForStatement>());
+        final innerFor = outerFor.body as ForStatement;
         expect(innerFor.variable.value, 'cell');
       });
 
@@ -972,9 +983,7 @@ void main() {
         expect(result, isA<ForStatement>());
         final forStmt = result as ForStatement;
 
-        final body = forStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
-        expect(body.statements[0], isA<IfStatement>());
+        expect(forStmt.body, isA<IfStatement>());
       });
 
       test('parses if with for statement inside', () {
@@ -986,9 +995,7 @@ void main() {
         expect(result, isA<IfStatement>());
         final ifStmt = result as IfStatement;
 
-        final body = ifStmt.body as OrderedStatements;
-        expect(body.statements.length, 1);
-        expect(body.statements[0], isA<ForStatement>());
+        expect(ifStmt.body, isA<ForStatement>());
       });
 
       test('throws on missing /for end tag', () {

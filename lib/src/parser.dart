@@ -95,12 +95,17 @@ final class Parser {
       }
     }
 
-    return switch (statements.length) {
-      0 => const OrderedStatements([]),
-      1 => statements.first,
-      _ => OrderedStatements(statements),
-    };
+    return _collapseStatements(statements);
   }
+
+  /// Returns an empty ordered block, a single statement, or an ordered block
+  /// containing multiple statements for the specified [statements].
+  Statement _collapseStatements(List<Statement> statements) =>
+      switch (statements.length) {
+        0 => const OrderedStatements([]),
+        1 => statements.first,
+        _ => OrderedStatements(statements),
+      };
 
   /// Parses a tag expression in the form `{{ expression }}`.
   ///
@@ -195,7 +200,7 @@ final class Parser {
       }
     }
 
-    return OrderedStatements(statements);
+    return _collapseStatements(statements);
   }
 
   /// Parses a for statement in the form `{{ for <variable> in <iterable> }}`.
@@ -250,7 +255,7 @@ final class Parser {
       }
     }
 
-    return OrderedStatements(statements);
+    return _collapseStatements(statements);
   }
 
   /// Checks if the current position is at an `{{ else` tag.
