@@ -4,6 +4,7 @@ import 'ast.dart';
 import 'exceptions.dart';
 import 'scanner.dart';
 import 'token.dart';
+import 'value.dart';
 import 'whitespace_processor.dart';
 
 /// A recursive descent parser for the Silhouette template language.
@@ -94,12 +95,17 @@ final class Parser {
       }
     }
 
-    return switch (statements.length) {
-      0 => const OrderedStatements([]),
-      1 => statements.first,
-      _ => OrderedStatements(statements),
-    };
+    return _collapseStatements(statements);
   }
+
+  /// Returns an empty ordered block, a single statement, or an ordered block
+  /// containing multiple statements for the specified [statements].
+  Statement _collapseStatements(List<Statement> statements) =>
+      switch (statements.length) {
+        0 => const OrderedStatements([]),
+        1 => statements.first,
+        _ => OrderedStatements(statements),
+      };
 
   /// Parses a tag expression in the form `{{ expression }}`.
   ///
@@ -194,7 +200,7 @@ final class Parser {
       }
     }
 
-    return OrderedStatements(statements);
+    return _collapseStatements(statements);
   }
 
   /// Parses a for statement in the form `{{ for <variable> in <iterable> }}`.
@@ -249,7 +255,7 @@ final class Parser {
       }
     }
 
-    return OrderedStatements(statements);
+    return _collapseStatements(statements);
   }
 
   /// Checks if the current position is at an `{{ else` tag.
@@ -465,7 +471,7 @@ final class Parser {
     final leftParen = _consume(TokenType.openParenthesis, 'Expected (');
 
     final positionalArguments = <Expression>[];
-    final namedArguments = <String, Expression>{};
+    final namedArguments = <SilhouetteIdentifier, Expression>{};
 
     // Parse arguments if any.
     if (_peek().type != TokenType.closeParenthesis) {
@@ -499,7 +505,7 @@ final class Parser {
   /// an identifier token.
   void _parseArgument(
     List<Expression> positionalArguments,
-    Map<String, Expression> namedArguments,
+    Map<SilhouetteIdentifier, Expression> namedArguments,
   ) {
     // Check if this looks like a named argument (identifier : expression).
     if (_peek().type == TokenType.identifier && _isNamedArgument()) {
@@ -524,12 +530,14 @@ final class Parser {
   /// names are not duplicated within the same function call.
   ///
   /// Throws [ParseException] for duplicate parameter names.
-  void _parseNamedArgument(Map<String, Expression> namedArguments) {
+  void _parseNamedArgument(
+    Map<SilhouetteIdentifier, Expression> namedArguments,
+  ) {
     final nameToken = _consume(TokenType.identifier, 'Expected parameter name');
     _consume(TokenType.colon, 'Expected : after parameter name');
     final value = _parseExpression();
 
-    final paramName = nameToken.value;
+    final paramName = SilhouetteIdentifier.trusted(nameToken.value);
     if (namedArguments.containsKey(paramName)) {
       throw ParseException(
         'Duplicate named parameter: $paramName',

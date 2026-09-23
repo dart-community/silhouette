@@ -27,6 +27,13 @@ extension type const SilhouetteIdentifier._(String identifier)
     }
   }
 
+  /// Creates a [SilhouetteIdentifier] without validating [identifier].
+  ///
+  /// This skips the validation performed by the default constructor and is
+  /// intended for internal callers that have already verified the input.
+  @internal
+  const SilhouetteIdentifier.trusted(this.identifier);
+
   /// Validates that a string is a valid Silhouette identifier.
   ///
   /// Returns `true` if the string starts with a letter or underscore

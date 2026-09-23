@@ -30,78 +30,147 @@ final class TemplateRenderer {
     Statement statement, [
     SilhouetteObject? context,
   ]) async {
-    final evaluator = _TemplateEvaluator([_globalContext, ?context]);
-    await statement.accept(evaluator);
+    final evaluator = _TemplateEvaluator(
+      _ScopeChain([
+        _ObjectScope(_globalContext),
+        if (context != null) _ObjectScope(context),
+      ]),
+    );
+    await evaluator._executeStatement(statement);
     return evaluator._output.toString();
   }
 }
 
-/// Internal evaluator that implements the visitor pattern for AST traversal.
+/// A frame in the renderer's identifier lookup chain.
+///
+/// Implementations return `null` for unbound identifiers.
+abstract interface class _Scope {
+  /// The value bound to [name], if this scope contains one.
+  SilhouetteValue? lookup(SilhouetteIdentifier name);
+}
+
+/// A scope frame backed by a [SilhouetteObject].
+final class _ObjectScope implements _Scope {
+  /// Creates a scope frame for [object].
+  _ObjectScope(this.object);
+
+  /// The object that supplies bindings for this scope.
+  final SilhouetteObject object;
+
+  /// Returns the value assigned to [name] in [object], if present.
+  @override
+  SilhouetteValue? lookup(SilhouetteIdentifier name) => object.value[name];
+}
+
+/// A scope frame for a single reusable loop variable binding.
+///
+/// The renderer mutates [value] for each loop iteration while keeping this
+/// frame on the scope chain for the duration of the loop.
+final class _LoopScope implements _Scope {
+  /// Creates a scope frame that binds [name].
+  _LoopScope(this.name);
+
+  /// The identifier this scope binds.
+  final SilhouetteIdentifier name;
+
+  /// The value currently bound to [name].
+  late SilhouetteValue value;
+
+  /// Returns the current [value] when [candidate] matches [name].
+  @override
+  SilhouetteValue? lookup(SilhouetteIdentifier candidate) =>
+      candidate == name ? value : null;
+}
+
+/// The renderer's identifier lookup chain.
+///
+/// Scopes are searched from innermost to outermost,
+/// so inner scopes such as loop variables shadow
+/// the render context and global variables.
+extension type _ScopeChain(List<_Scope> _scopes) {
+  /// Adds [scope] as the new innermost scope.
+  void push(_Scope scope) => _scopes.add(scope);
+
+  /// Removes the innermost scope.
+  void pop() => _scopes.removeLast();
+
+  /// The value bound to [name] in the innermost scope that binds it, if any.
+  SilhouetteValue? lookup(SilhouetteIdentifier name) {
+    for (var i = _scopes.length - 1; i >= 0; i -= 1) {
+      if (_scopes[i].lookup(name) case final value?) {
+        return value;
+      }
+    }
+    return null;
+  }
+}
+
+/// Internal evaluator that walks the AST with exhaustive `switch` dispatch.
 ///
 /// Handles the actual evaluation of a single parent statement or expression.
-final class _TemplateEvaluator
-    implements
-        ExpressionVisitor<Future<SilhouetteValue>>,
-        StatementVisitor<Future<void>> {
+final class _TemplateEvaluator {
   /// The scope chain for variable resolution.
-  ///
-  /// Scopes are searched from innermost (end of list) to outermost (beginning)
-  /// for variable resolution. This supports nested scopes for future features
-  /// like conditionals and loops.
-  final List<SilhouetteObject> _scopes;
+  final _ScopeChain _scopes;
 
   /// Buffer for collecting template output during evaluation.
   final StringBuffer _output = StringBuffer();
 
   /// Creates an evaluator with the given scope chain.
-  ///
-  /// The [_scopes] list should be ordered from outermost to innermost scope.
   _TemplateEvaluator(this._scopes);
 
-  @override
-  Future<void> visitOrderedStatements(OrderedStatements stmt) async {
-    for (final childStmt in stmt.statements) {
-      await childStmt.accept(this);
+  /// Executes [stmt], writing any output it produces to [_output].
+  Future<void> _executeStatement(Statement stmt) async {
+    switch (stmt) {
+      case OrderedStatements(:final statements):
+        for (final childStmt in statements) {
+          await _executeStatement(childStmt);
+        }
+      case TextOutputStatement(:final text):
+        _output.write(text);
+      case ExpressionOutputStatement(:final expression):
+        final value = await _evaluateExpression(expression);
+        _output.write(value.toString());
+      case ForStatement():
+        await _executeForStatement(stmt);
+      case IfStatement():
+        await _executeIfStatement(stmt);
     }
   }
 
-  @override
-  Future<void> visitTextOutput(TextOutputStatement stmt) async {
-    _output.write(stmt.text);
-  }
-
-  @override
-  Future<void> visitExpressionOutput(ExpressionOutputStatement stmt) async {
-    final value = await stmt.expression.accept(this);
-    _output.write(value.toString());
-  }
-
-  @override
-  Future<void> visitForStatement(ForStatement stmt) async {
-    final iterableValue = await stmt.iterable.accept(this);
+  /// Executes the body of [stmt] once for each element of its iterable.
+  ///
+  /// The loop variable is bound in a new innermost scope,
+  /// which is removed when the loop completes, even if the body throws.
+  ///
+  /// Throws a [SilhouetteException] if the iterable expression
+  /// doesn't evaluate to a [SilhouetteIterable].
+  Future<void> _executeForStatement(ForStatement stmt) async {
+    final iterableValue = await _evaluateExpression(stmt.iterable);
     if (iterableValue is! SilhouetteIterable<SilhouetteValue>) {
       throw SilhouetteException(
         'For loop requires an iterable, got ${iterableValue.runtimeType}',
       );
     }
 
-    final variableName = SilhouetteIdentifier(stmt.variable.value);
-
-    for (final element in iterableValue.values) {
-      // Create a scope with the loop variable for each iteration.
-      final loopScope = SilhouetteObject({variableName: element});
-      _scopes.add(loopScope);
-      try {
-        await stmt.body.accept(this);
-      } finally {
-        _scopes.removeLast();
+    final loopScope = _LoopScope(stmt.variableName);
+    _scopes.push(loopScope);
+    try {
+      for (final element in iterableValue.values) {
+        loopScope.value = element;
+        await _executeStatement(stmt.body);
       }
+    } finally {
+      _scopes.pop();
     }
   }
 
-  @override
-  Future<void> visitIfStatement(IfStatement stmt) async {
-    final conditionValue = await stmt.condition.accept(this);
+  /// Executes the body of [stmt] if its condition is `true`,
+  /// otherwise executes its else branch, if it has one.
+  ///
+  /// Throws a [SilhouetteException] if the condition
+  /// doesn't evaluate to a [SilhouetteBool].
+  Future<void> _executeIfStatement(IfStatement stmt) async {
+    final conditionValue = await _evaluateExpression(stmt.condition);
     if (conditionValue is! SilhouetteBool) {
       throw SilhouetteException(
         'If condition must be a boolean, got ${conditionValue.runtimeType}',
@@ -109,36 +178,40 @@ final class _TemplateEvaluator
     }
 
     if (conditionValue.value) {
-      await stmt.body.accept(this);
+      await _executeStatement(stmt.body);
     } else if (stmt.elseBranch case final elseBranch?) {
-      await elseBranch.accept(this);
+      await _executeStatement(elseBranch);
     }
   }
 
-  @override
-  Future<SilhouetteValue> visitIdentifier(
-    IdentifierExpression identifier,
-  ) async {
-    final key = SilhouetteIdentifier(identifier.token.value);
-
-    // Try each scope from innermost to outermost.
-    for (final scope in _scopes.reversed) {
-      try {
-        return await scope.retrieve(key);
-      } on UnknownPropertyException {
-        // Continue to next scope if variable not found in current scope.
-        continue;
-      }
-    }
-
-    // If not found in any scope, throw exception.
-    throw SilhouetteException(
-      'Undefined variable: ${identifier.token.value}',
-    );
+  /// Evaluates [expr] and returns the resulting value.
+  Future<SilhouetteValue> _evaluateExpression(Expression expr) async {
+    return switch (expr) {
+      IdentifierExpression() => _evaluateIdentifier(expr),
+      LiteralExpression() => _evaluateLiteral(expr),
+      PropertyAccessExpression() => await _evaluatePropertyAccess(expr),
+      IndexAccessExpression() => await _evaluateIndexAccess(expr),
+      CallExpression() => await _evaluateCall(expr),
+    };
   }
 
-  @override
-  Future<SilhouetteValue> visitLiteral(LiteralExpression literal) async {
+  /// Returns the value bound to the name of [identifier]
+  /// in the innermost scope that binds it.
+  ///
+  /// Throws a [SilhouetteException] if no scope binds the name.
+  SilhouetteValue _evaluateIdentifier(IdentifierExpression identifier) {
+    final name = identifier.name;
+
+    if (_scopes.lookup(name) case final value?) {
+      return value;
+    }
+
+    throw SilhouetteException('Undefined variable: $name');
+  }
+
+  /// Converts the parsed Dart value of [literal]
+  /// to its corresponding [SilhouetteValue].
+  SilhouetteValue _evaluateLiteral(LiteralExpression literal) {
     final value = literal.value;
     return switch (value) {
       null => SilhouetteNull(),
@@ -152,20 +225,24 @@ final class _TemplateEvaluator
     };
   }
 
-  @override
-  Future<SilhouetteValue> visitPropertyAccess(
+  /// Evaluates the object of [access],
+  /// then retrieves the accessed property from it.
+  Future<SilhouetteValue> _evaluatePropertyAccess(
     PropertyAccessExpression access,
   ) async {
-    final object = await access.object.accept(this);
-    return await object.retrieve(SilhouetteIdentifier(access.identifier.value));
+    final object = await _evaluateExpression(access.object);
+    return await object.retrieve(access.name);
   }
 
-  @override
-  Future<SilhouetteValue> visitIndexAccess(
+  /// Evaluates the object and then the index of [access],
+  /// and looks up the index in the object.
+  ///
+  /// Throws a [SilhouetteException] if the object isn't [SilhouetteIndexable].
+  Future<SilhouetteValue> _evaluateIndexAccess(
     IndexAccessExpression access,
   ) async {
-    final object = await access.object.accept(this);
-    final indexValue = await access.index.accept(this);
+    final object = await _evaluateExpression(access.object);
+    final indexValue = await _evaluateExpression(access.index);
 
     if (object is! SilhouetteIndexable) {
       throw SilhouetteException(
@@ -176,9 +253,12 @@ final class _TemplateEvaluator
     return object.forKey(indexValue);
   }
 
-  @override
-  Future<SilhouetteValue> visitCall(CallExpression call) async {
-    final target = await call.callee.accept(this);
+  /// Evaluates the callee of [call] and, if it's a [SilhouetteFunction],
+  /// evaluates the arguments and calls the function with them.
+  ///
+  /// Throws a [SilhouetteException] if the callee isn't a [SilhouetteFunction].
+  Future<SilhouetteValue> _evaluateCall(CallExpression call) async {
+    final target = await _evaluateExpression(call.callee);
 
     if (target is SilhouetteFunction) {
       final evaluatedArguments = await _evaluateArguments(call);
@@ -190,14 +270,18 @@ final class _TemplateEvaluator
     );
   }
 
+  /// Evaluates the arguments of [call],
+  /// positional arguments first, then named arguments,
+  /// each in the order they appear in the source.
   Future<SilhouetteArguments> _evaluateArguments(CallExpression call) async =>
       SilhouetteArguments(
         positional: [
-          for (final arg in call.positionalArguments) await arg.accept(this),
+          for (final arg in call.positionalArguments)
+            await _evaluateExpression(arg),
         ],
         named: {
           for (final MapEntry(:key, :value) in call.namedArguments.entries)
-            SilhouetteIdentifier(key): await value.accept(this),
+            key: await _evaluateExpression(value),
         },
       );
 }

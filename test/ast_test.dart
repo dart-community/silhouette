@@ -1,3 +1,4 @@
+import 'package:silhouette/silhouette.dart';
 import 'package:silhouette/src/ast.dart';
 import 'package:silhouette/src/token.dart';
 import 'package:test/test.dart';
@@ -104,19 +105,6 @@ void main() {
         expect(nested.body, same(innerBody));
         expect(nested.elseBranch, same(elseBody));
       });
-
-      test('accepts statement visitor', () {
-        final condition = IdentifierExpression(
-          testToken(TokenType.identifier, 'show'),
-        );
-        const body = TextOutputStatement('Hello');
-        final stmt = IfStatement(condition: condition, body: body);
-
-        final visitor = _TestStatementVisitor();
-        final result = stmt.accept(visitor);
-        expect(result, equals('ifStatement'));
-        expect(visitor.lastIfStmt, same(stmt));
-      });
     });
 
     group('ForStatement', () {
@@ -136,40 +124,16 @@ void main() {
         expect(stmt.iterable, same(iterable));
         expect(stmt.body, same(body));
       });
-
-      test('accepts statement visitor', () {
-        final variable = testToken(TokenType.identifier, 'item');
-        final iterable = IdentifierExpression(
-          testToken(TokenType.identifier, 'items'),
-        );
-        const body = TextOutputStatement('Hello');
-        final stmt = ForStatement(
-          variable: variable,
-          iterable: iterable,
-          body: body,
-        );
-
-        final visitor = _TestStatementVisitor();
-        final result = stmt.accept(visitor);
-        expect(result, equals('forStatement'));
-        expect(visitor.lastForStmt, same(stmt));
-      });
     });
   });
 
   group('Expression classes', () {
     group('IdentifierExpression', () {
-      test('stores token and implements visitor pattern', () {
+      test('stores token', () {
         final token = testToken(TokenType.identifier, 'variableName');
         final expr = IdentifierExpression(token);
 
         expect(expr.token, same(token));
-
-        // Test visitor pattern.
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('identifier'));
-        expect(visitor.lastIdentifierExpr, same(expr));
       });
     });
 
@@ -180,16 +144,6 @@ void main() {
 
         expect(expr.token, same(token));
         expect(expr.value, equals('hello'));
-      });
-
-      test('implements visitor pattern', () {
-        final token = testToken(TokenType.numberLiteral, '42');
-        final expr = LiteralExpression(token, value: 42);
-
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('literal'));
-        expect(visitor.lastLiteralExpr, same(expr));
       });
 
       test('can have null value', () {
@@ -219,22 +173,6 @@ void main() {
         expect(expr.dotToken, same(dotToken));
         expect(expr.identifier, same(identifierToken));
       });
-
-      test('implements visitor pattern', () {
-        final objectExpr = IdentifierExpression(
-          testToken(TokenType.identifier, 'obj'),
-        );
-        final expr = PropertyAccessExpression(
-          objectExpr,
-          testToken(TokenType.dot, '.'),
-          testToken(TokenType.identifier, 'prop'),
-        );
-
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('propertyAccess'));
-        expect(visitor.lastPropertyAccessExpr, same(expr));
-      });
     });
 
     group('IndexAccessExpression', () {
@@ -261,27 +199,6 @@ void main() {
         expect(expr.index, same(indexExpr));
         expect(expr.rightBracketToken, same(rightBracketToken));
       });
-
-      test('implements visitor pattern', () {
-        final objectExpr = IdentifierExpression(
-          testToken(TokenType.identifier, 'arr'),
-        );
-        final indexExpr = LiteralExpression(
-          testToken(TokenType.numberLiteral, '1'),
-          value: 1,
-        );
-        final expr = IndexAccessExpression(
-          objectExpr,
-          testToken(TokenType.openSquareBracket, '['),
-          indexExpr,
-          testToken(TokenType.closeSquareBracket, ']'),
-        );
-
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('indexAccess'));
-        expect(visitor.lastIndexAccessExpr, same(expr));
-      });
     });
 
     group('CallExpression', () {
@@ -304,7 +221,7 @@ void main() {
           calleeExpr,
           leftParenToken,
           [positionalArg],
-          {'key': namedArgValue},
+          {SilhouetteIdentifier('key'): namedArgValue},
           rightParenToken,
         );
 
@@ -313,7 +230,10 @@ void main() {
         expect(expr.positionalArguments.length, equals(1));
         expect(expr.positionalArguments[0], same(positionalArg));
         expect(expr.namedArguments.length, equals(1));
-        expect(expr.namedArguments['key'], same(namedArgValue));
+        expect(
+          expr.namedArguments[SilhouetteIdentifier('key')],
+          same(namedArgValue),
+        );
         expect(expr.rightParenToken, same(rightParenToken));
       });
 
@@ -332,175 +252,6 @@ void main() {
         expect(expr.positionalArguments, isEmpty);
         expect(expr.namedArguments, isEmpty);
       });
-
-      test('implements visitor pattern', () {
-        final calleeExpr = IdentifierExpression(
-          testToken(TokenType.identifier, 'fn'),
-        );
-        final expr = CallExpression(
-          calleeExpr,
-          testToken(TokenType.openParenthesis, '('),
-          const [],
-          const {},
-          testToken(TokenType.closeParenthesis, ')'),
-        );
-
-        final visitor = _TestVisitor();
-        final result = expr.accept(visitor);
-        expect(result, equals('call'));
-        expect(visitor.lastCallExpr, same(expr));
-      });
     });
   });
-
-  group('Visitor pattern integration', () {
-    test('complex expression tree works with visitor', () {
-      // Create expression: user.getName(true, format: "short")
-      final userExpr = IdentifierExpression(
-        testToken(TokenType.identifier, 'user'),
-      );
-      final propertyExpr = PropertyAccessExpression(
-        userExpr,
-        testToken(TokenType.dot, '.'),
-        testToken(TokenType.identifier, 'getName'),
-      );
-      final callExpr = CallExpression(
-        propertyExpr,
-        testToken(TokenType.openParenthesis, '('),
-        [
-          LiteralExpression(
-            testToken(TokenType.trueKeyword, 'true'),
-            value: true,
-          ),
-        ],
-        {
-          'format': LiteralExpression(
-            testToken(TokenType.stringLiteral, '"short"'),
-            value: 'short',
-          ),
-        },
-        testToken(TokenType.closeParenthesis, ')'),
-      );
-
-      final visitor = _TestVisitor();
-      final result = callExpr.accept(visitor);
-      expect(result, equals('call'));
-      expect(visitor.lastCallExpr, same(callExpr));
-    });
-
-    test('nested property access works with visitor', () {
-      // Create expression: user.profile.name
-      final userExpr = IdentifierExpression(
-        testToken(TokenType.identifier, 'user'),
-      );
-      final profileExpr = PropertyAccessExpression(
-        userExpr,
-        testToken(TokenType.dot, '.'),
-        testToken(TokenType.identifier, 'profile'),
-      );
-      final nameExpr = PropertyAccessExpression(
-        profileExpr,
-        testToken(TokenType.dot, '.'),
-        testToken(TokenType.identifier, 'name'),
-      );
-
-      final visitor = _TestVisitor();
-      final result = nameExpr.accept(visitor);
-      expect(result, equals('propertyAccess'));
-      expect(visitor.lastPropertyAccessExpr, same(nameExpr));
-    });
-
-    test('array access with expression index works', () {
-      // Create expression: items[key.index]
-      final itemsExpr = IdentifierExpression(
-        testToken(TokenType.identifier, 'items'),
-      );
-      final keyExpr = IdentifierExpression(
-        testToken(TokenType.identifier, 'key'),
-      );
-      final propertyExpr = PropertyAccessExpression(
-        keyExpr,
-        testToken(TokenType.dot, '.'),
-        testToken(TokenType.identifier, 'index'),
-      );
-      final expr = IndexAccessExpression(
-        itemsExpr,
-        testToken(TokenType.openSquareBracket, '['),
-        propertyExpr,
-        testToken(TokenType.closeSquareBracket, ']'),
-      );
-
-      final visitor = _TestVisitor();
-      final result = expr.accept(visitor);
-      expect(result, equals('indexAccess'));
-      expect(visitor.lastIndexAccessExpr, same(expr));
-    });
-  });
-}
-
-/// Test implementation of [StatementVisitor] for testing the visitor pattern.
-class _TestStatementVisitor implements StatementVisitor<String> {
-  IfStatement? lastIfStmt;
-  ForStatement? lastForStmt;
-
-  @override
-  String visitOrderedStatements(OrderedStatements stmt) => 'orderedStatements';
-
-  @override
-  String visitTextOutput(TextOutputStatement stmt) => 'textOutput';
-
-  @override
-  String visitExpressionOutput(ExpressionOutputStatement stmt) =>
-      'expressionOutput';
-
-  @override
-  String visitIfStatement(IfStatement stmt) {
-    lastIfStmt = stmt;
-    return 'ifStatement';
-  }
-
-  @override
-  String visitForStatement(ForStatement stmt) {
-    lastForStmt = stmt;
-    return 'forStatement';
-  }
-}
-
-/// Test implementation of [ExpressionVisitor] for testing the visitor pattern.
-class _TestVisitor implements ExpressionVisitor<String> {
-  IdentifierExpression? lastIdentifierExpr;
-  LiteralExpression? lastLiteralExpr;
-  PropertyAccessExpression? lastPropertyAccessExpr;
-  IndexAccessExpression? lastIndexAccessExpr;
-  CallExpression? lastCallExpr;
-
-  @override
-  String visitIdentifier(IdentifierExpression expr) {
-    lastIdentifierExpr = expr;
-    return 'identifier';
-  }
-
-  @override
-  String visitLiteral(LiteralExpression expr) {
-    lastLiteralExpr = expr;
-    return 'literal';
-  }
-
-  @override
-  String visitPropertyAccess(PropertyAccessExpression expr) {
-    lastPropertyAccessExpr = expr;
-    return 'propertyAccess';
-  }
-
-  @override
-  String visitIndexAccess(IndexAccessExpression expr) {
-    lastIndexAccessExpr = expr;
-    return 'indexAccess';
-  }
-
-  @override
-  String visitCall(CallExpression expr) {
-    lastCallExpr = expr;
-    return 'call';
-  }
 }

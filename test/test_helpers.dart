@@ -1,4 +1,6 @@
+import 'package:silhouette/src/ast.dart';
 import 'package:silhouette/src/token.dart';
+import 'package:test/test.dart';
 
 /// Creates a placeholder source location for testing purposes.
 ///
@@ -18,3 +20,7 @@ const SourceLocation placeholderLocation = SourceLocation(
 Token testToken(TokenType type, String value) {
   return Token(type, value, placeholderLocation);
 }
+
+/// Matches a [TextOutputStatement] that outputs the specified [text].
+Matcher isTextOutput(String text) =>
+    isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', text);

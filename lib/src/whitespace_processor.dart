@@ -51,16 +51,16 @@ abstract final class WhitespaceProcessor {
 
       final token = tokens[i];
 
-      // Check if token has whitespace control flags.
-      final trimBefore =
-          token is TokenWithWhitespaceControl && token.trimWhitespaceBefore;
-      final trimAfter =
-          token is TokenWithWhitespaceControl && token.trimWhitespaceAfter;
+      // Tokens without whitespace control flags are preserved as-is.
+      if (token is! TokenWithWhitespaceControl) {
+        result.add(token);
+        continue;
+      }
 
       // Handle openTag or openComment with trimWhitespaceBefore flag.
       if ((token.type == TokenType.openTag ||
               token.type == TokenType.openComment) &&
-          trimBefore) {
+          token.trimWhitespaceBefore) {
         // Trim trailing whitespace from the previous text token.
         if (result.isNotEmpty && result.last.type == TokenType.text) {
           final lastToken = result.removeLast();
@@ -74,7 +74,7 @@ abstract final class WhitespaceProcessor {
       // Handle closeTag or closeComment with trimWhitespaceAfter flag.
       if ((token.type == TokenType.closeTag ||
               token.type == TokenType.closeComment) &&
-          trimAfter) {
+          token.trimWhitespaceAfter) {
         // Add the close tag as a plain Token (no flags).
         result.add(Token(token.type, token.value, token.location));
 

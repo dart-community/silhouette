@@ -156,11 +156,11 @@ final class Scanner {
     );
 
     tokens.add(
-      TokenWithWhitespaceControl(
+      _createDelimiterToken(
         TokenType.openTag,
         '{{',
         location,
-        trimWhitespaceBefore: trimBefore,
+        trimBefore: trimBefore,
       ),
     );
     _insideTag = true;
@@ -213,11 +213,11 @@ final class Scanner {
     );
 
     tokens.add(
-      TokenWithWhitespaceControl(
+      _createDelimiterToken(
         TokenType.openComment,
         '{{#',
         location,
-        trimWhitespaceBefore: trimBefore,
+        trimBefore: trimBefore,
       ),
     );
 
@@ -286,11 +286,11 @@ final class Scanner {
     );
 
     tokens.add(
-      TokenWithWhitespaceControl(
+      _createDelimiterToken(
         TokenType.closeComment,
         '#}}',
         location,
-        trimWhitespaceAfter: trimAfter,
+        trimAfter: trimAfter,
       ),
     );
   }
@@ -372,11 +372,11 @@ final class Scanner {
     );
 
     tokens.add(
-      TokenWithWhitespaceControl(
+      _createDelimiterToken(
         TokenType.closeTag,
         '}}',
         location,
-        trimWhitespaceAfter: trimAfter,
+        trimAfter: trimAfter,
       ),
     );
     _insideTag = false;
@@ -425,6 +425,27 @@ final class Scanner {
     _advance();
     return Token(type, value, location);
   }
+
+  /// Creates a tag or comment delimiter token.
+  ///
+  /// Only delimiters that request trimming are created as
+  /// [TokenWithWhitespaceControl] so that all other tokens can
+  /// pass through whitespace processing unchanged.
+  Token _createDelimiterToken(
+    TokenType type,
+    String value,
+    SourceLocation location, {
+    bool trimBefore = false,
+    bool trimAfter = false,
+  }) => trimBefore || trimAfter
+      ? TokenWithWhitespaceControl(
+          type,
+          value,
+          location,
+          trimWhitespaceBefore: trimBefore,
+          trimWhitespaceAfter: trimAfter,
+        )
+      : Token(type, value, location);
 
   /// Attempts to scan a string literal token.
   ///
