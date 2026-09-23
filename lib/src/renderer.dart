@@ -87,8 +87,7 @@ final class _TemplateEvaluator {
   /// The scope chain for variable resolution.
   ///
   /// Scopes are searched from innermost (end of list) to outermost (beginning)
-  /// for variable resolution. This supports nested scopes for future features
-  /// like conditionals and loops.
+  /// so loop variables shadow the render context and global variables.
   final List<_Scope> _scopes;
 
   /// Buffer for collecting template output during evaluation.
@@ -177,14 +176,12 @@ final class _TemplateEvaluator {
     };
   }
 
-  Future<SilhouetteValue> _evaluateIdentifier(
-    IdentifierExpression identifier,
-  ) async {
+  SilhouetteValue _evaluateIdentifier(IdentifierExpression identifier) {
     final key = SilhouetteIdentifier.trusted(identifier.token.value);
 
     // Try each scope from innermost to outermost.
-    for (final scope in _scopes.reversed) {
-      if (scope.lookup(key) case final value?) {
+    for (var i = _scopes.length - 1; i >= 0; i -= 1) {
+      if (_scopes[i].lookup(key) case final value?) {
         return value;
       }
     }
