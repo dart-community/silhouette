@@ -1,3 +1,7 @@
+## 0.1.1-wip
+
+- Require Dart 3.12 or later.
+
 ## 0.1.0
 
 - Added support for `if` statements.
