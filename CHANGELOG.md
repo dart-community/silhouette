@@ -1,6 +1,7 @@
 ## 0.1.1-wip
 
 - Require Dart 3.12 or later.
+- Improve template rendering performance.
 
 ## 0.1.0
 
