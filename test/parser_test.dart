@@ -4,6 +4,8 @@ import 'package:silhouette/src/parser.dart';
 import 'package:silhouette/src/token.dart';
 import 'package:test/test.dart';
 
+import 'test_helpers.dart';
+
 void main() {
   group('Parser', () {
     group('Basic parsing', () {
@@ -667,14 +669,7 @@ void main() {
           'visible',
         );
 
-        expect(
-          ifStmt.body,
-          isA<TextOutputStatement>().having(
-            (stmt) => stmt.text,
-            'text',
-            'Hello',
-          ),
-        );
+        expect(ifStmt.body, isTextOutput('Hello'));
 
         expect(ifStmt.elseBranch, isNull);
       });
@@ -686,15 +681,9 @@ void main() {
         expect(result, isA<IfStatement>());
         final ifStmt = result as IfStatement;
 
-        expect(
-          ifStmt.body,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', 'yes'),
-        );
+        expect(ifStmt.body, isTextOutput('yes'));
 
-        expect(
-          ifStmt.elseBranch,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', 'no'),
-        );
+        expect(ifStmt.elseBranch, isTextOutput('no'));
       });
 
       test('parses if-else if-else as nested IfStatements', () {
@@ -706,10 +695,7 @@ void main() {
         expect(result, isA<IfStatement>());
         final ifStmt = result as IfStatement;
 
-        expect(
-          ifStmt.body,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '1'),
-        );
+        expect(ifStmt.body, isTextOutput('1'));
 
         // An `else if` produces a nested `IfStatement`.
         expect(ifStmt.elseBranch, isA<IfStatement>());
@@ -719,15 +705,9 @@ void main() {
           (elseIf.condition as IdentifierExpression).token.value,
           'b',
         );
-        expect(
-          elseIf.body,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '2'),
-        );
+        expect(elseIf.body, isTextOutput('2'));
 
-        expect(
-          elseIf.elseBranch,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '3'),
-        );
+        expect(elseIf.elseBranch, isTextOutput('3'));
       });
 
       test('parses multiple else-if branches as nested chain', () {
@@ -746,10 +726,7 @@ void main() {
           (elseIf1.condition as IdentifierExpression).token.value,
           'b',
         );
-        expect(
-          elseIf1.body,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '2'),
-        );
+        expect(elseIf1.body, isTextOutput('2'));
 
         // Second `else if` branch.
         expect(elseIf1.elseBranch, isA<IfStatement>());
@@ -758,16 +735,10 @@ void main() {
           (elseIf2.condition as IdentifierExpression).token.value,
           'c',
         );
-        expect(
-          elseIf2.body,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '3'),
-        );
+        expect(elseIf2.body, isTextOutput('3'));
 
         // Final `else` branch.
-        expect(
-          elseIf2.elseBranch,
-          isA<TextOutputStatement>().having((stmt) => stmt.text, 'text', '4'),
-        );
+        expect(elseIf2.elseBranch, isTextOutput('4'));
       });
 
       test('parses nested if statements', () {
@@ -782,14 +753,7 @@ void main() {
         expect(outerIf.body, isA<IfStatement>());
         final innerIf = outerIf.body as IfStatement;
 
-        expect(
-          innerIf.body,
-          isA<TextOutputStatement>().having(
-            (stmt) => stmt.text,
-            'text',
-            'nested',
-          ),
-        );
+        expect(innerIf.body, isTextOutput('nested'));
       });
 
       test('parses if with expression condition', () {
@@ -834,14 +798,7 @@ void main() {
         expect(ifStmt.condition, isA<LiteralExpression>());
         expect((ifStmt.condition as LiteralExpression).value, true);
 
-        expect(
-          ifStmt.body,
-          isA<TextOutputStatement>().having(
-            (stmt) => stmt.text,
-            'text',
-            'always',
-          ),
-        );
+        expect(ifStmt.body, isTextOutput('always'));
       });
 
       test('parses if with empty body', () {
@@ -894,14 +851,7 @@ void main() {
         expect(result, isA<ForStatement>());
         final forStmt = result as ForStatement;
 
-        expect(
-          forStmt.body,
-          isA<TextOutputStatement>().having(
-            (stmt) => stmt.text,
-            'text',
-            'hello',
-          ),
-        );
+        expect(forStmt.body, isTextOutput('hello'));
       });
 
       test('parses for with property access iterable', () {

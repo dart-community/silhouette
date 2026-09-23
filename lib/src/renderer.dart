@@ -118,6 +118,7 @@ final class _TemplateEvaluator {
   /// Creates an evaluator with the given scope chain.
   _TemplateEvaluator(this._scopes);
 
+  /// Executes [stmt], writing any output it produces to [_output].
   Future<void> _executeStatement(Statement stmt) async {
     switch (stmt) {
       case OrderedStatements(:final statements):
@@ -136,6 +137,13 @@ final class _TemplateEvaluator {
     }
   }
 
+  /// Executes the body of [stmt] once for each element of its iterable.
+  ///
+  /// The loop variable is bound in a new innermost scope,
+  /// which is removed when the loop completes, even if the body throws.
+  ///
+  /// Throws a [SilhouetteException] if the iterable expression
+  /// doesn't evaluate to a [SilhouetteIterable].
   Future<void> _executeForStatement(ForStatement stmt) async {
     final iterableValue = await _evaluateExpression(stmt.iterable);
     if (iterableValue is! SilhouetteIterable<SilhouetteValue>) {
@@ -144,9 +152,7 @@ final class _TemplateEvaluator {
       );
     }
 
-    final variableName = SilhouetteIdentifier.trusted(stmt.variable.value);
-
-    final loopScope = _LoopScope(variableName);
+    final loopScope = _LoopScope(stmt.variableName);
     _scopes.push(loopScope);
     try {
       for (final element in iterableValue.values) {
@@ -158,6 +164,11 @@ final class _TemplateEvaluator {
     }
   }
 
+  /// Executes the body of [stmt] if its condition is `true`,
+  /// otherwise executes its else branch, if it has one.
+  ///
+  /// Throws a [SilhouetteException] if the condition
+  /// doesn't evaluate to a [SilhouetteBool].
   Future<void> _executeIfStatement(IfStatement stmt) async {
     final conditionValue = await _evaluateExpression(stmt.condition);
     if (conditionValue is! SilhouetteBool) {
@@ -173,47 +184,65 @@ final class _TemplateEvaluator {
     }
   }
 
+  /// Evaluates [expr] and returns the resulting value.
   Future<SilhouetteValue> _evaluateExpression(Expression expr) async {
     return switch (expr) {
       IdentifierExpression() => _evaluateIdentifier(expr),
-      LiteralExpression(:final value) => switch (value) {
-        null => SilhouetteNull(),
-        String() => SilhouetteString(value),
-        int() => SilhouetteInt(value),
-        double() => SilhouetteDouble(value),
-        bool() => SilhouetteBool(value),
-        _ => throw SilhouetteException(
-          'Unsupported literal type: ${value.runtimeType}',
-        ),
-      },
-      PropertyAccessExpression(:final object, :final identifier) =>
-        await (await _evaluateExpression(
-          object,
-        )).retrieve(SilhouetteIdentifier.trusted(identifier.value)),
-      IndexAccessExpression(:final object, :final index) =>
-        await _evaluateIndexAccess(object, index),
+      LiteralExpression() => _evaluateLiteral(expr),
+      PropertyAccessExpression() => await _evaluatePropertyAccess(expr),
+      IndexAccessExpression() => await _evaluateIndexAccess(expr),
       CallExpression() => await _evaluateCall(expr),
     };
   }
 
+  /// Returns the value bound to the name of [identifier]
+  /// in the innermost scope that binds it.
+  ///
+  /// Throws a [SilhouetteException] if no scope binds the name.
   SilhouetteValue _evaluateIdentifier(IdentifierExpression identifier) {
-    final key = SilhouetteIdentifier.trusted(identifier.token.value);
+    final name = identifier.name;
 
-    if (_scopes.lookup(key) case final value?) {
+    if (_scopes.lookup(name) case final value?) {
       return value;
     }
 
-    throw SilhouetteException(
-      'Undefined variable: ${identifier.token.value}',
-    );
+    throw SilhouetteException('Undefined variable: $name');
   }
 
-  Future<SilhouetteValue> _evaluateIndexAccess(
-    Expression objectExpr,
-    Expression indexExpr,
+  /// Converts the parsed Dart value of [literal]
+  /// to its corresponding [SilhouetteValue].
+  SilhouetteValue _evaluateLiteral(LiteralExpression literal) {
+    final value = literal.value;
+    return switch (value) {
+      null => SilhouetteNull(),
+      String() => SilhouetteString(value),
+      int() => SilhouetteInt(value),
+      double() => SilhouetteDouble(value),
+      bool() => SilhouetteBool(value),
+      _ => throw SilhouetteException(
+        'Unsupported literal type: ${value.runtimeType}',
+      ),
+    };
+  }
+
+  /// Evaluates the object of [access],
+  /// then retrieves the accessed property from it.
+  Future<SilhouetteValue> _evaluatePropertyAccess(
+    PropertyAccessExpression access,
   ) async {
-    final object = await _evaluateExpression(objectExpr);
-    final indexValue = await _evaluateExpression(indexExpr);
+    final object = await _evaluateExpression(access.object);
+    return await object.retrieve(access.name);
+  }
+
+  /// Evaluates the object and then the index of [access],
+  /// and looks up the index in the object.
+  ///
+  /// Throws a [SilhouetteException] if the object isn't [SilhouetteIndexable].
+  Future<SilhouetteValue> _evaluateIndexAccess(
+    IndexAccessExpression access,
+  ) async {
+    final object = await _evaluateExpression(access.object);
+    final indexValue = await _evaluateExpression(access.index);
 
     if (object is! SilhouetteIndexable) {
       throw SilhouetteException(
@@ -224,6 +253,10 @@ final class _TemplateEvaluator {
     return object.forKey(indexValue);
   }
 
+  /// Evaluates the callee of [call] and, if it's a [SilhouetteFunction],
+  /// evaluates the arguments and calls the function with them.
+  ///
+  /// Throws a [SilhouetteException] if the callee isn't a [SilhouetteFunction].
   Future<SilhouetteValue> _evaluateCall(CallExpression call) async {
     final target = await _evaluateExpression(call.callee);
 
@@ -237,6 +270,9 @@ final class _TemplateEvaluator {
     );
   }
 
+  /// Evaluates the arguments of [call],
+  /// positional arguments first, then named arguments,
+  /// each in the order they appear in the source.
   Future<SilhouetteArguments> _evaluateArguments(CallExpression call) async =>
       SilhouetteArguments(
         positional: [

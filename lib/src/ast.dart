@@ -147,6 +147,10 @@ final class ForStatement extends Statement {
     required this.iterable,
     required this.body,
   });
+
+  /// The name of the loop variable.
+  SilhouetteIdentifier get variableName =>
+      SilhouetteIdentifier.trusted(variable.value);
 }
 
 /// Sealed base class for all expression nodes in the AST.
@@ -172,6 +176,9 @@ final class IdentifierExpression extends Expression {
 
   /// Creates an identifier expression from the given [token].
   const IdentifierExpression(this.token);
+
+  /// The name of the referenced identifier.
+  SilhouetteIdentifier get name => SilhouetteIdentifier.trusted(token.value);
 }
 
 /// An expression representing a literal value.
@@ -219,6 +226,10 @@ final class PropertyAccessExpression extends Expression {
   /// [object] is the expression being accessed,
   /// [dotToken] is the dot separator, and [identifier] is the property name.
   const PropertyAccessExpression(this.object, this.dotToken, this.identifier);
+
+  /// The name of the accessed property.
+  SilhouetteIdentifier get name =>
+      SilhouetteIdentifier.trusted(identifier.value);
 }
 
 /// An expression representing index access using bracket notation.
