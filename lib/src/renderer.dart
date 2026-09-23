@@ -30,10 +30,12 @@ final class TemplateRenderer {
     Statement statement, [
     SilhouetteObject? context,
   ]) async {
-    final evaluator = _TemplateEvaluator([
-      _ObjectScope(_globalContext),
-      if (context != null) _ObjectScope(context),
-    ]);
+    final evaluator = _TemplateEvaluator(
+      _ScopeChain([
+        _ObjectScope(_globalContext),
+        if (context != null) _ObjectScope(context),
+      ]),
+    );
     await evaluator._executeStatement(statement);
     return evaluator._output.toString();
   }
@@ -80,22 +82,40 @@ final class _LoopScope implements _Scope {
       candidate == name ? value : null;
 }
 
+/// The renderer's identifier lookup chain.
+///
+/// Scopes are searched from innermost to outermost,
+/// so inner scopes such as loop variables shadow
+/// the render context and global variables.
+extension type _ScopeChain(List<_Scope> _scopes) {
+  /// Adds [scope] as the new innermost scope.
+  void push(_Scope scope) => _scopes.add(scope);
+
+  /// Removes the innermost scope.
+  void pop() => _scopes.removeLast();
+
+  /// The value bound to [name] in the innermost scope that binds it, if any.
+  SilhouetteValue? lookup(SilhouetteIdentifier name) {
+    for (var i = _scopes.length - 1; i >= 0; i -= 1) {
+      if (_scopes[i].lookup(name) case final value?) {
+        return value;
+      }
+    }
+    return null;
+  }
+}
+
 /// Internal evaluator that walks the AST with exhaustive `switch` dispatch.
 ///
 /// Handles the actual evaluation of a single parent statement or expression.
 final class _TemplateEvaluator {
   /// The scope chain for variable resolution.
-  ///
-  /// Scopes are searched from innermost (end of list) to outermost (beginning)
-  /// so loop variables shadow the render context and global variables.
-  final List<_Scope> _scopes;
+  final _ScopeChain _scopes;
 
   /// Buffer for collecting template output during evaluation.
   final StringBuffer _output = StringBuffer();
 
   /// Creates an evaluator with the given scope chain.
-  ///
-  /// The [_scopes] list should be ordered from outermost to innermost scope.
   _TemplateEvaluator(this._scopes);
 
   Future<void> _executeStatement(Statement stmt) async {
@@ -127,14 +147,14 @@ final class _TemplateEvaluator {
     final variableName = SilhouetteIdentifier.trusted(stmt.variable.value);
 
     final loopScope = _LoopScope(variableName);
-    _scopes.add(loopScope);
+    _scopes.push(loopScope);
     try {
       for (final element in iterableValue.values) {
         loopScope.value = element;
         await _executeStatement(stmt.body);
       }
     } finally {
-      _scopes.removeLast();
+      _scopes.pop();
     }
   }
 
@@ -179,14 +199,10 @@ final class _TemplateEvaluator {
   SilhouetteValue _evaluateIdentifier(IdentifierExpression identifier) {
     final key = SilhouetteIdentifier.trusted(identifier.token.value);
 
-    // Try each scope from innermost to outermost.
-    for (var i = _scopes.length - 1; i >= 0; i -= 1) {
-      if (_scopes[i].lookup(key) case final value?) {
-        return value;
-      }
+    if (_scopes.lookup(key) case final value?) {
+      return value;
     }
 
-    // If not found in any scope, throw exception.
     throw SilhouetteException(
       'Undefined variable: ${identifier.token.value}',
     );
